@@ -33,8 +33,6 @@ import java.io.FileOutputStream
 import android.Manifest
 import android.content.pm.PackageManager
 import android.telephony.SmsManager
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import android.widget.Toast
 

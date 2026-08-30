@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.cargo.CargoApp
 import com.example.cargo.data.Contact
 import com.example.cargo.data.SettingsRepository
+import com.example.cargo.data.SmsSenderTemplate
 import com.example.cargo.data.Shipment
 import com.example.cargo.data.ShipmentRepository
 import com.example.cargo.util.JalaliDate
@@ -122,7 +123,9 @@ class ShipmentViewModel(application: Application) : AndroidViewModel(application
 
     /** خواندن اولین مقدار از یک Flow (helper ساده) */
     private suspend fun <T> firstOf(flow: Flow<T>, default: T): T {
-        return kotlinx.coroutines.flow.first(flow)
+        var result = default
+        flow.collect { result = it }
+        return result
     }
 
     fun insert(

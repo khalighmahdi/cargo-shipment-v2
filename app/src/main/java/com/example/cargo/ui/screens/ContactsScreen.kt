@@ -145,12 +145,10 @@ fun ContactsScreen(
                 editing = null
             },
             onSave = { name, phone ->
-                viewModel.viewModelScopeLaunch {
-                    if (editing != null) {
-                        contactRepoSave(viewModel, editing!!.copy(name = name, phone = phone))
-                    } else {
-                        contactRepoSave(viewModel, Contact(name = name, phone = phone))
-                    }
+                if (editing != null) {
+                    viewModel.saveContact(editing!!.copy(name = name, phone = phone))
+                } else {
+                    viewModel.saveContact(Contact(name = name, phone = phone))
                 }
                 showAddDialog = false
                 editing = null
@@ -175,10 +173,6 @@ fun ContactsScreen(
             }
         )
     }
-}
-
-private fun contactRepoSave(viewModel: ShipmentViewModel, contact: Contact) {
-    viewModel.saveContact(contact)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

@@ -3,6 +3,8 @@ package com.example.cargo.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -211,7 +213,10 @@ fun SettingsScreen(
 
             // ===== Contacts book shortcut =====
             if (onOpenContacts != null) {
-                Card(Modifier.fillMaxWidth(), onClick = onOpenContacts) {
+                Card(
+                    Modifier.fillMaxWidth(),
+                    onClick = { onOpenContacts() }
+                ) {
                     Row(
                         Modifier.padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically

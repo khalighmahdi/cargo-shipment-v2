@@ -2,6 +2,7 @@ package com.example.cargo
 
 import android.app.Application
 import com.example.cargo.data.AppDatabase
+import com.example.cargo.data.ContactRepository
 import com.example.cargo.data.SettingsRepository
 import com.example.cargo.data.ShipmentRepository
 
