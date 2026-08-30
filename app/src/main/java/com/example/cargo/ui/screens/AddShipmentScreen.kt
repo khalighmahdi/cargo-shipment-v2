@@ -20,7 +20,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.input.KeyboardOptions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -148,7 +148,7 @@ fun AddShipmentScreen(
                                     AsyncImage(
                                         model = uri,
                                         contentDescription = null,
-                                        contentScale = androidx.compose.foundation.layout.ContentScale.Crop,
+                                        contentScale = ContentScale.Crop,
                                         modifier = Modifier.fillMaxSize()
                                     )
                                     // Delete button on image
