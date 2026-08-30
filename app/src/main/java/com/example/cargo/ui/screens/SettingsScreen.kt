@@ -26,9 +26,9 @@ import com.example.cargo.util.ShipmentWebServer
 import com.example.cargo.util.SmsSender
 import com.example.cargo.viewmodel.ShipmentViewModel
 import kotlinx.coroutines.launch
-import android.Manifest
-import android.content.pm.PackageManager
-import androidx.core.content.ContextCompat
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import android.widget.Toast
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -44,6 +44,7 @@ fun SettingsScreen(
     // SMS settings state
     val smsEnabled by viewModel.settings.smsEnabled.collectAsState(initial = true)
     val smsMethod by viewModel.settings.smsMethod.collectAsState(initial = "sim")
+    val smsApiUrl by viewModel.settings.smsApiUrl.collectAsState(initial = SmsSender.KAVENEGAR_TEMPLATE)
     val smsApiKey by viewModel.settings.smsApiKey.collectAsState(initial = "")
     val smsSenderNum by viewModel.settings.smsSender.collectAsState(initial = "")
     val smsTemplate by viewModel.settings.smsTemplate.collectAsState(initial = SmsSender.DEFAULT_MESSAGE)
@@ -52,10 +53,10 @@ fun SettingsScreen(
     var serverIp by remember { mutableStateOf<String?>(null) }
     var server by remember { mutableStateOf<ShipmentWebServer?>(null) }
 
-    // SMS permission (SEND_SMS for SIM method)
+    // SMS permission for SIM method
     var hasSmsPerm by remember {
         mutableStateOf(
-            ContextCompat.checkSelfPermission(context, Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED
+            context.checkSelfPermission(android.Manifest.permission.SEND_SMS) == android.content.pm.PackageManager.PERMISSION_GRANTED
         )
     }
     val smsPermLauncher = rememberLauncherForActivityResult(
@@ -63,6 +64,8 @@ fun SettingsScreen(
     ) { granted -> hasSmsPerm = granted }
 
     var methodMenuOpen by remember { mutableStateOf(false) }
+    var testPhone by remember { mutableStateOf("") }
+    var testResult by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
         topBar = { TopAppBar(title = { Text("⚙️ تنظیمات") }) }
@@ -132,7 +135,7 @@ fun SettingsScreen(
                             onExpandedChange = { methodMenuOpen = it }
                         ) {
                             OutlinedTextField(
-                                value = if (smsMethod == "sim") "📱 از سیم‌کارت خودم" else "🌐 از API کاوه‌نگار",
+                                value = if (smsMethod == "sim") "📱 از سیم‌کارت خودم (رایگان)" else "🌐 از API (هر سایت پیامکی)",
                                 onValueChange = {},
                                 readOnly = true,
                                 label = { Text("روش ارسال") },
@@ -148,13 +151,13 @@ fun SettingsScreen(
                                     onClick = {
                                         scope.launch { viewModel.settings.setSmsMethod("sim") }
                                         methodMenuOpen = false
-                                        if (!hasSmsPerm) smsPermLauncher.launch(Manifest.permission.SEND_SMS)
+                                        if (!hasSmsPerm) smsPermLauncher.launch(android.Manifest.permission.SEND_SMS)
                                     }
                                 )
                                 DropdownMenuItem(
-                                    text = { Text("🌐 از API کاوه‌نگار (خط پیامکی)") },
+                                    text = { Text("🌐 از API (هر سایت پیامکی: کاوه‌نگار، فراپیامک، ...)") },
                                     onClick = {
-                                        scope.launch { viewModel.settings.setSmsMethod("kavenegar") }
+                                        scope.launch { viewModel.settings.setSmsMethod("api") }
                                         methodMenuOpen = false
                                     }
                                 )
@@ -163,11 +166,20 @@ fun SettingsScreen(
 
                         Spacer(Modifier.height(8.dp))
 
-                        if (smsMethod == "kavenegar") {
+                        if (smsMethod == "api") {
+                            // API URL template
+                            OutlinedTextField(
+                                value = smsApiUrl,
+                                onValueChange = { scope.launch { viewModel.settings.setSmsApiUrl(it.trim()) } },
+                                label = { Text("آدرس API (قالب)") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
+                            Spacer(Modifier.height(8.dp))
                             OutlinedTextField(
                                 value = smsApiKey,
                                 onValueChange = { scope.launch { viewModel.settings.setSmsApiKey(it.trim()) } },
-                                label = { Text("API Key کاوه‌نگار") },
+                                label = { Text("API Key") },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true
                             )
@@ -175,13 +187,13 @@ fun SettingsScreen(
                             OutlinedTextField(
                                 value = smsSenderNum,
                                 onValueChange = { scope.launch { viewModel.settings.setSmsSender(it.trim()) } },
-                                label = { Text("شماره خط ارسال (اختیاری، مثلا 10008663)") },
+                                label = { Text("شماره خط ارسال (اختیاری)") },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true
                             )
                             Spacer(Modifier.height(4.dp))
                             Text(
-                                "از kavenegar.com حساب بساز و API Key رو اینجا وارد کن",
+                                "placeholders: {api_key} {sender} {phone} {message}\nمثال کاوه‌نگار: ${SmsSender.KAVENEGAR_TEMPLATE}",
                                 fontSize = 11.sp,
                                 color = Color.Gray
                             )
@@ -192,9 +204,46 @@ fun SettingsScreen(
                                 color = if (hasSmsPerm) Color(0xFF43A047) else Color(0xFFFFB300)
                             )
                             if (!hasSmsPerm) {
-                                TextButton(onClick = { smsPermLauncher.launch(Manifest.permission.SEND_SMS) }) {
-                                    Text("دادن پرمیشن")
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    TextButton(onClick = { smsPermLauncher.launch(android.Manifest.permission.SEND_SMS) }) {
+                                        Text("درخواست پرمیشن")
+                                    }
+                                    TextButton(onClick = {
+                                        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                                        intent.data = Uri.parse("package:${context.packageName}")
+                                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                        context.startActivity(intent)
+                                    }) {
+                                        Text("باز کردن تنظیمات اپ")
+                                    }
                                 }
+                            }
+                            Spacer(Modifier.height(8.dp))
+                            // Test SMS button
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                OutlinedTextField(
+                                    value = testPhone,
+                                    onValueChange = { testPhone = it },
+                                    label = { Text("شماره برای تست") },
+                                    modifier = Modifier.weight(1f),
+                                    singleLine = true
+                                )
+                                Button(onClick = {
+                                    testResult = null
+                                    scope.launch { viewModel.sendTestSms(testPhone) { ok, msg ->
+                                        testResult = if (ok) "✅ $msg" else "❌ $msg"
+                                    } }
+                                }) {
+                                    Text("📤 پیامک تست")
+                                }
+                            }
+                            if (testResult != null) {
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    testResult!,
+                                    fontSize = 12.sp,
+                                    color = if (testResult!!.startsWith("✅")) Color(0xFF43A047) else Color(0xFFE53935)
+                                )
                             }
                         }
 
@@ -336,7 +385,7 @@ fun SettingsScreen(
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("📦 باربری", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    Text("نسخه ۲.۳", fontSize = 12.sp, color = Color.Gray)
+                    Text("نسخه ۲.۴", fontSize = 12.sp, color = Color.Gray)
                 }
             }
         }

@@ -1,11 +1,8 @@
 package com.example.cargo.util
 
-import android.content.Context
 import android.telephony.SmsManager
-import android.widget.Toast
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
@@ -13,23 +10,24 @@ import java.net.URLEncoder
 /**
  * ارسال پیامک — دو روش:
  * 1. از سیم‌کارت خود گوشی (SmsManager) — رایگان از شارژ
- * 2. از API سرویس پیامکی (کاوه‌نگار) — برای ارسال انبوه
+ * 2. API عمومی: هر سرویس پیامکی با قالب URL
+ *    مثال کاوه‌نگار:
+ *    https://api.kavenegar.com/v1/{api_key}/sms/send.json?receptor={phone}&message={message}&sender={sender}
+ *
+ *    placeholder ها: {api_key} {sender} {phone} {message}
  */
 object SmsSender {
 
     const val DEFAULT_MESSAGE = "سفارش شما در حال بسته بندی و ارسال میباشد"
 
+    const val KAVENEGAR_TEMPLATE =
+        "https://api.kavenegar.com/v1/{api_key}/sms/send.json?receptor={phone}&message={message}&sender={sender}"
+
     /** ارسال از سیم‌کارت خود گوشی */
     fun sendViaSim(phone: String, message: String): Boolean {
         return try {
-            val sm = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-                val ctx = null // will use default
-                SmsManager.getDefault()
-            } else {
-                @Suppress("DEPRECATION")
-                SmsManager.getDefault()
-            }
-            // Long messages are split automatically
+            @Suppress("DEPRECATION")
+            val sm = SmsManager.getDefault()
             val parts = sm.divideMessage(message)
             if (parts.size == 1) {
                 sm.sendTextMessage(phone, null, message, null, null)
@@ -44,39 +42,43 @@ object SmsSender {
     }
 
     /**
-     * ارسال از API کاوه‌نگار (kavenegar.com)
-     * sender = شماره خط ارسال (مثلا 10008663) — خالی باشد = پیش‌فرض کاوه‌نگار
+     * ارسال از API عمومی — قالب URL با placeholder ها
+     * هر سرویسی که GET با پارامتر داشته باشه کار می‌کنه
      */
-    suspend fun sendViaKavenegar(apiKey: String, sender: String, phone: String, message: String): Pair<Boolean, String> =
-        withContext(Dispatchers.IO) {
-            try {
-                val url = URL("https://api.kavenegar.com/v1/$apiKey/sms/send.json")
-                val conn = url.openConnection() as HttpURLConnection
-                conn.requestMethod = "POST"
-                conn.doOutput = true
-                conn.connectTimeout = 10_000
-                conn.readTimeout = 15_000
+    suspend fun sendViaApi(
+        urlTemplate: String,
+        apiKey: String,
+        sender: String,
+        phone: String,
+        message: String
+    ): Pair<Boolean, String> = withContext(Dispatchers.IO) {
+        try {
+            if (urlTemplate.isBlank()) return@withContext Pair(false, "آدرس API تنظیم نشده")
 
-                val body = StringBuilder()
-                body.append("receptor=").append(URLEncoder.encode(phone, "UTF-8"))
-                body.append("&message=").append(URLEncoder.encode(message, "UTF-8"))
-                if (sender.isNotBlank()) {
-                    body.append("&sender=").append(URLEncoder.encode(sender, "UTF-8"))
-                }
+            val url = urlTemplate
+                .replace("{api_key}", URLEncoder.encode(apiKey, "UTF-8"))
+                .replace("{sender}", URLEncoder.encode(sender, "UTF-8"))
+                .replace("{phone}", URLEncoder.encode(phone, "UTF-8"))
+                .replace("{message}", URLEncoder.encode(message, "UTF-8"))
 
-                OutputStreamWriter(conn.outputStream, Charsets.UTF_8).use { w ->
-                    w.write(body.toString())
-                    w.flush()
-                }
+            val conn = URL(url).openConnection() as HttpURLConnection
+            conn.requestMethod = "GET"
+            conn.connectTimeout = 10_000
+            conn.readTimeout = 15_000
 
-                val code = conn.responseCode
-                val response = conn.inputStream.bufferedReader().readText()
-                conn.disconnect()
-
-                if (code in 200..299) Pair(true, "OK")
-                else Pair(false, "HTTP $code: ${response.take(200)}")
+            val code = conn.responseCode
+            val response = try {
+                val stream = if (code in 200..399) conn.inputStream else conn.errorStream
+                stream?.bufferedReader()?.readText() ?: ""
             } catch (e: Exception) {
-                Pair(false, e.message ?: "error")
+                ""
             }
+            conn.disconnect()
+
+            if (code in 200..299) Pair(true, "OK")
+            else Pair(false, "HTTP $code: ${response.take(150)}")
+        } catch (e: Exception) {
+            Pair(false, e.message ?: "خطای نامشخص")
         }
+    }
 }

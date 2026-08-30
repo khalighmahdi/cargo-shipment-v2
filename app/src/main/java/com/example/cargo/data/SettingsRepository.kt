@@ -14,16 +14,17 @@ class SettingsRepository(private val context: Context) {
 
     companion object {
         val DARK_MODE = booleanPreferencesKey("dark_mode")
-        // SMS settings
+        // SMS settings - generic
         val SMS_ENABLED = booleanPreferencesKey("sms_enabled")
-        val SMS_METHOD = stringPreferencesKey("sms_method")   // "sim" or "kavenegar"
-        val SMS_API_KEY = stringPreferencesKey("sms_api_key")
-        val SMS_SENDER = stringPreferencesKey("sms_sender")   // kavenegar line number
+        val SMS_METHOD = stringPreferencesKey("sms_method")   // "sim" or "api"
+        val SMS_API_URL = stringPreferencesKey("sms_api_url")   // generic URL template
+        val SMS_API_KEY = stringPreferencesKey("sms_api_key")   // API key for the service
+        val SMS_SENDER = stringPreferencesKey("sms_sender")     // sender line number
         val SMS_TEMPLATE = stringPreferencesKey("sms_template")
     }
 
     val darkMode: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[DARK_MODE] ?: true  // default dark (matches current design)
+        prefs[DARK_MODE] ?: true
     }
 
     suspend fun setDarkMode(enabled: Boolean) {
@@ -35,15 +36,19 @@ class SettingsRepository(private val context: Context) {
     // ===== SMS =====
     val smsEnabled: Flow<Boolean> = context.dataStore.data.map { it[SMS_ENABLED] ?: true }
     val smsMethod: Flow<String> = context.dataStore.data.map { it[SMS_METHOD] ?: "sim" }
+    val smsApiUrl: Flow<String> = context.dataStore.data.map { it[SMS_API_URL] ?: SmsSender.KAVENEGAR_TEMPLATE }
     val smsApiKey: Flow<String> = context.dataStore.data.map { it[SMS_API_KEY] ?: "" }
     val smsSender: Flow<String> = context.dataStore.data.map { it[SMS_SENDER] ?: "" }
-    val smsTemplate: Flow<String> = context.dataStore.data.map { it[SMS_TEMPLATE] ?: SmsSenderTemplate.DEFAULT }
+    val smsTemplate: Flow<String> = context.dataStore.data.map { it[SMS_TEMPLATE] ?: SmsSender.DEFAULT_MESSAGE }
 
     suspend fun setSmsEnabled(enabled: Boolean) =
         context.dataStore.edit { it[SMS_ENABLED] = enabled }
 
     suspend fun setSmsMethod(method: String) =
         context.dataStore.edit { it[SMS_METHOD] = method }
+
+    suspend fun setSmsApiUrl(url: String) =
+        context.dataStore.edit { it[SMS_API_URL] = url }
 
     suspend fun setSmsApiKey(key: String) =
         context.dataStore.edit { it[SMS_API_KEY] = key }

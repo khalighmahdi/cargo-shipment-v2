@@ -99,14 +99,15 @@ class ShipmentViewModel(application: Application) : AndroidViewModel(application
             val method = firstOf(settings.smsMethod, "sim")
             val template = firstOf(settings.smsTemplate, SmsSenderTemplate.DEFAULT)
 
-            if (method == "kavenegar") {
+            if (method == "api") {
+                val url = firstOf(settings.smsApiUrl, "")
                 val apiKey = firstOf(settings.smsApiKey, "")
-                if (apiKey.isBlank()) {
-                    onResult(false, "API Key کاوه‌نگار تنظیم نشده")
+                if (url.isBlank()) {
+                    onResult(false, "آدرس API تنظیم نشده")
                     return@launch
                 }
                 val sender = firstOf(settings.smsSender, "")
-                val (ok, msg) = SmsSender.sendViaKavenegar(apiKey, sender, shipment.senderPhone, template)
+                val (ok, msg) = SmsSender.sendViaApi(url, apiKey, sender, shipment.senderPhone, template)
                 if (ok) markSmsSent(shipment)
                 onResult(ok, if (ok) "پیامک ارسال شد ✓" else "خطا: $msg")
             } else {
@@ -115,6 +116,11 @@ class ShipmentViewModel(application: Application) : AndroidViewModel(application
                 onResult(ok, if (ok) "پیامک ارسال شد ✓" else "خطا در ارسال پیامک (پرمیشن SMS؟)")
             }
         }
+    }
+
+    /** پیامک تست از صفحه تنظیمات */
+    fun sendTestSms(phone: String, onResult: (Boolean, String) -> Unit) {
+        sendAutoSms(Shipment(senderPhone = phone), onResult)
     }
 
     private fun markSmsSent(shipment: Shipment) {
