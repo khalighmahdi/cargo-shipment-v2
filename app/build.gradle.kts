@@ -12,8 +12,8 @@ android {
         applicationId = "com.example.cargo"
         minSdk = 24
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "2.1"
     }
 
     buildTypes {
@@ -62,4 +62,6 @@ dependencies {
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.view)
     ksp(libs.androidx.room.compiler)
+    implementation(libs.androidx.datastore)
+    implementation(libs.nanohttpd)
 }

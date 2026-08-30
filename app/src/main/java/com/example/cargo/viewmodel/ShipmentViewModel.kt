@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.cargo.CargoApp
+import com.example.cargo.data.SettingsRepository
 import com.example.cargo.data.Shipment
 import com.example.cargo.data.ShipmentRepository
 import com.example.cargo.util.JalaliDate
@@ -22,6 +23,7 @@ import kotlinx.coroutines.launch
 class ShipmentViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repo: ShipmentRepository = (application as CargoApp).repository
+    val settings: SettingsRepository = (application as CargoApp).settings
 
     // Search state
     private val _searchQuery = MutableStateFlow("")

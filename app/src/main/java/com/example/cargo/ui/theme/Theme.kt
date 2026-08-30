@@ -7,19 +7,38 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
+// Brand colors
+val Purple = Color(0xFF7C4DFF)
+val PurpleDark = Color(0xFF651FFF)
+val Blue = Color(0xFF448AFF)
+val Amber = Color(0xFFFFB300)
+val Green = Color(0xFF43A047)
+val Red = Color(0xFFE53935)
+
 private val LightColors = lightColorScheme(
-    primary = Color(0xFF1565C0),
+    primary = Purple,
     onPrimary = Color.White,
-    primaryContainer = Color(0xFFBBDEFB),
-    secondary = Color(0xFF00838F),
-    background = Color(0xFFF5F5F5),
-    surface = Color.White
+    primaryContainer = Color(0xFFE1BEE7),
+    onPrimaryContainer = Color(0xFF311B92),
+    secondary = Blue,
+    tertiary = Green,
+    background = Color(0xFFF3F0FF),
+    surface = Color.White,
+    surfaceVariant = Color(0xFFEDE7F6),
+    onSurfaceVariant = Color(0xFF49454F)
 )
 
 private val DarkColors = darkColorScheme(
-    primary = Color(0xFF90CAF9),
-    onPrimary = Color(0xFF0D47A1),
-    secondary = Color(0xFF80DEEA)
+    primary = Color(0xFFB388FF),
+    onPrimary = Color(0xFF311B92),
+    primaryContainer = Color(0xFF4527A0),
+    onPrimaryContainer = Color(0xFFE1BEE7),
+    secondary = Color(0xFF82B1FF),
+    tertiary = Color(0xFFA5D6A7),
+    background = Color(0xFF121016),
+    surface = Color(0xFF1D1B22),
+    surfaceVariant = Color(0xFF2A2733),
+    onSurfaceVariant = Color(0xFFCAC4D0)
 )
 
 @Composable

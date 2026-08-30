@@ -47,25 +47,8 @@ fun DashboardScreen(
                         Text("📦 باربری", fontSize = 20.sp, fontWeight = FontWeight.Bold)
                         Text(today.formatWithMonthName(), fontSize = 12.sp, color = Color.Gray)
                     }
-                },
-                actions = {
-                    IconButton(onClick = {
-                        val path = CsvExporter.export(context, shipments)
-                        if (path != null) {
-                            Toast.makeText(context, "ذخیره شد: $path", Toast.LENGTH_LONG).show()
-                        } else {
-                            Toast.makeText(context, "خطا در ذخیره", Toast.LENGTH_SHORT).show()
-                        }
-                    }) {
-                        Icon(Icons.Default.FileDownload, "خروجی CSV")
-                    }
                 }
             )
-        },
-        floatingActionButton = {
-            FloatingActionButton(onClick = onAdd) {
-                Icon(Icons.Default.Add, "ثبت بار جدید")
-            }
         }
     ) { padding ->
         Column(modifier = Modifier.padding(padding).fillMaxSize()) {
