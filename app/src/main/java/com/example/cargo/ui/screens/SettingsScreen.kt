@@ -100,7 +100,7 @@ fun SettingsScreen(viewModel: ShipmentViewModel) {
                                         try {
                                             val app = context.applicationContext as com.example.cargo.CargoApp
                                             val s = ShipmentWebServer(app.repository)
-                                            s.start(java.util.concurrent.atomic.AtomicInteger(0), false)
+                                            s.start(0, false)
                                             server = s
                                             serverRunning = true
                                             serverIp = ip
