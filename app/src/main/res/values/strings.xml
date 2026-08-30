@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">باربری</string>
+    <string name="dashboard">داشبورد</string>
+    <string name="add_shipment">ثبت بار جدید</string>
+    <string name="search">جستجو...</string>
+    <string name="sender">فرستنده</string>
+    <string name="receiver">گیرنده</string>
+    <string name="destination">مقصد</string>
+    <string name="description">توضیحات بار</string>
+    <string name="notes">یادداشت</string>
+    <string name="status">وضعیت</string>
+    <string name="date">تاریخ</string>
+    <string name="save">ذخیره</string>
+    <string name="cancel">انصراف</string>
+    <string name="delete">حذف</string>
+    <string name="edit">ویرایش</string>
+    <string name="camera">دوربین</string>
+    <string name="gallery">گالری</string>
+    <string name="in_transit">در حال ارسال</string>
+    <string name="delivered">تحویل شده</string>
+    <string name="returned">برگشتی</string>
+    <string name="export">خروجی CSV</string>
+    <string name="no_data">هیچ باری ثبت نشده</string>
+    <string name="image_saved">عکس ذخیره شد</string>
+    <string name="permission_required">دسترسی به دوربین لازم است</string>
+</resources>
