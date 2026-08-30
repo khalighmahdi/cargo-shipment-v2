@@ -8,6 +8,7 @@ import androidx.room.Query
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
+@Dao
 interface ShipmentDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(shipment: Shipment): Long
@@ -57,6 +58,7 @@ interface ShipmentDao {
     fun count(): Flow<Int>
 }
 
+@Dao
 interface ContactDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(contact: Contact): Long
