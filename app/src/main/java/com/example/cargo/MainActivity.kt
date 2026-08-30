@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Archive
+import androidx.compose.material.icons.filled.Contacts
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Archive
@@ -19,7 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -35,6 +36,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.cargo.ui.screens.AddShipmentScreen
 import com.example.cargo.ui.screens.ArchiveScreen
+import com.example.cargo.ui.screens.ContactsScreen
 import com.example.cargo.ui.screens.DashboardScreen
 import com.example.cargo.ui.screens.SettingsScreen
 import com.example.cargo.ui.screens.ShipmentDetailsScreen
@@ -87,8 +89,10 @@ private fun MainApp(viewModel: ShipmentViewModel) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    // Routes that show the bottom bar
     val showBottomBar = currentRoute in tabs.map { it.route }
+
+    // Contact picking: which phone field opened the contacts book
+    var pickTarget by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
         bottomBar = {
@@ -149,12 +153,19 @@ private fun MainApp(viewModel: ShipmentViewModel) {
                 )
             }
             composable("settings") {
-                SettingsScreen(viewModel = viewModel)
+                SettingsScreen(
+                    viewModel = viewModel,
+                    onOpenContacts = { navController.navigate("contacts?pick=false") }
+                )
             }
             composable("add") {
                 AddShipmentScreen(
                     viewModel = viewModel,
-                    onBack = { navController.popBackStack() }
+                    onBack = { navController.popBackStack() },
+                    onOpenContacts = { which ->
+                        pickTarget = which
+                        navController.navigate("contacts?pick=true")
+                    }
                 )
             }
             composable(
@@ -162,17 +173,16 @@ private fun MainApp(viewModel: ShipmentViewModel) {
                 arguments = listOf(navArgument("id") { type = NavType.IntType })
             ) { backStackEntry ->
                 val id = backStackEntry.arguments?.getInt("id") ?: 0
-                var initial: com.example.cargo.data.Shipment? = null
-                // Get the shipment synchronously from the current list state
-                androidx.compose.runtime.LaunchedEffect(id) {
-                    // handled via collect below
-                }
                 val current by viewModel.filteredShipments.collectAsState()
-                initial = current.firstOrNull { it.id == id }
+                val initial = current.firstOrNull { it.id == id }
                 AddShipmentScreen(
                     viewModel = viewModel,
                     onBack = { navController.popBackStack() },
-                    initialShipment = initial
+                    initialShipment = initial,
+                    onOpenContacts = { which ->
+                        pickTarget = which
+                        navController.navigate("contacts?pick=true")
+                    }
                 )
             }
             composable(
@@ -185,6 +195,28 @@ private fun MainApp(viewModel: ShipmentViewModel) {
                     shipmentId = id,
                     onBack = { navController.popBackStack() },
                     onEdit = { navController.navigate("edit/$id") }
+                )
+            }
+            composable(
+                "contacts?pick={pick}",
+                arguments = listOf(navArgument("pick") { type = NavType.StringType; defaultValue = "false" })
+            ) { backStackEntry ->
+                val pick = backStackEntry.arguments?.getString("pick") == "true"
+                ContactsScreen(
+                    viewModel = viewModel,
+                    onBack = { navController.popBackStack() },
+                    pickMode = pick,
+                    onPick = { name, phone ->
+                        when (pickTarget) {
+                            "sender" -> viewModel.pendingSenderName = name
+                            "receiver" -> viewModel.pendingReceiverName = name
+                        }
+                        when (pickTarget) {
+                            "sender" -> viewModel.pendingSenderPhone = phone
+                            "receiver" -> viewModel.pendingReceiverPhone = phone
+                        }
+                        navController.popBackStack()
+                    }
                 )
             }
         }

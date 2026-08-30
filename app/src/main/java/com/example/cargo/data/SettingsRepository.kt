@@ -3,6 +3,7 @@ package com.example.cargo.data
 import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -13,6 +14,12 @@ class SettingsRepository(private val context: Context) {
 
     companion object {
         val DARK_MODE = booleanPreferencesKey("dark_mode")
+        // SMS settings
+        val SMS_ENABLED = booleanPreferencesKey("sms_enabled")
+        val SMS_METHOD = stringPreferencesKey("sms_method")   // "sim" or "kavenegar"
+        val SMS_API_KEY = stringPreferencesKey("sms_api_key")
+        val SMS_SENDER = stringPreferencesKey("sms_sender")   // kavenegar line number
+        val SMS_TEMPLATE = stringPreferencesKey("sms_template")
     }
 
     val darkMode: Flow<Boolean> = context.dataStore.data.map { prefs ->
@@ -24,4 +31,30 @@ class SettingsRepository(private val context: Context) {
             prefs[DARK_MODE] = enabled
         }
     }
+
+    // ===== SMS =====
+    val smsEnabled: Flow<Boolean> = context.dataStore.data.map { it[SMS_ENABLED] ?: true }
+    val smsMethod: Flow<String> = context.dataStore.data.map { it[SMS_METHOD] ?: "sim" }
+    val smsApiKey: Flow<String> = context.dataStore.data.map { it[SMS_API_KEY] ?: "" }
+    val smsSender: Flow<String> = context.dataStore.data.map { it[SMS_SENDER] ?: "" }
+    val smsTemplate: Flow<String> = context.dataStore.data.map { it[SMS_TEMPLATE] ?: SmsSenderTemplate.DEFAULT }
+
+    suspend fun setSmsEnabled(enabled: Boolean) =
+        context.dataStore.edit { it[SMS_ENABLED] = enabled }
+
+    suspend fun setSmsMethod(method: String) =
+        context.dataStore.edit { it[SMS_METHOD] = method }
+
+    suspend fun setSmsApiKey(key: String) =
+        context.dataStore.edit { it[SMS_API_KEY] = key }
+
+    suspend fun setSmsSender(sender: String) =
+        context.dataStore.edit { it[SMS_SENDER] = sender }
+
+    suspend fun setSmsTemplate(template: String) =
+        context.dataStore.edit { it[SMS_TEMPLATE] = template }
+}
+
+object SmsSenderTemplate {
+    const val DEFAULT = "سفارش شما در حال بسته بندی و ارسال میباشد"
 }

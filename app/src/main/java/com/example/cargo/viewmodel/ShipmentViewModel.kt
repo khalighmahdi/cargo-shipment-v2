@@ -4,10 +4,15 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.cargo.CargoApp
+import com.example.cargo.data.Contact
 import com.example.cargo.data.SettingsRepository
 import com.example.cargo.data.Shipment
 import com.example.cargo.data.ShipmentRepository
 import com.example.cargo.util.JalaliDate
+import com.example.cargo.util.SmsSender
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,6 +28,7 @@ import kotlinx.coroutines.launch
 class ShipmentViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repo: ShipmentRepository = (application as CargoApp).repository
+    val contactRepo: com.example.cargo.data.ContactRepository = (application as CargoApp).contactRepository
     val settings: SettingsRepository = (application as CargoApp).settings
 
     // Search state
@@ -77,14 +83,59 @@ class ShipmentViewModel(application: Application) : AndroidViewModel(application
     fun getByMonth(year: Int, month: Int): Flow<List<Shipment>> = repo.getByMonth(year, month)
     fun getByDay(year: Int, month: Int, day: Int): Flow<List<Shipment>> = repo.getByDay(year, month, day)
 
+    /** ارسال پیامک خودکار بر اساس تنظیمات (فقط فرستنده/صاحب بار) */
+    fun sendAutoSms(shipment: Shipment, onResult: (Boolean, String) -> Unit = { _, _ -> }) {
+        viewModelScope.launch {
+            if (shipment.senderPhone.isBlank()) {
+                onResult(false, "شماره صاحب بار ثبت نشده")
+                return@launch
+            }
+            val enabled = firstOf(settings.smsEnabled, true)
+            if (!enabled) {
+                onResult(false, "پیامک خودکار خاموش است")
+                return@launch
+            }
+            val method = firstOf(settings.smsMethod, "sim")
+            val template = firstOf(settings.smsTemplate, SmsSenderTemplate.DEFAULT)
+
+            if (method == "kavenegar") {
+                val apiKey = firstOf(settings.smsApiKey, "")
+                if (apiKey.isBlank()) {
+                    onResult(false, "API Key کاوه‌نگار تنظیم نشده")
+                    return@launch
+                }
+                val sender = firstOf(settings.smsSender, "")
+                val (ok, msg) = SmsSender.sendViaKavenegar(apiKey, sender, shipment.senderPhone, template)
+                if (ok) markSmsSent(shipment)
+                onResult(ok, if (ok) "پیامک ارسال شد ✓" else "خطا: $msg")
+            } else {
+                val ok = SmsSender.sendViaSim(shipment.senderPhone, template)
+                if (ok) markSmsSent(shipment)
+                onResult(ok, if (ok) "پیامک ارسال شد ✓" else "خطا در ارسال پیامک (پرمیشن SMS؟)")
+            }
+        }
+    }
+
+    private fun markSmsSent(shipment: Shipment) {
+        viewModelScope.launch { repo.update(shipment.copy(smsSent = true)) }
+    }
+
+    /** خواندن اولین مقدار از یک Flow (helper ساده) */
+    private suspend fun <T> firstOf(flow: Flow<T>, default: T): T {
+        return kotlinx.coroutines.flow.first(flow)
+    }
+
     fun insert(
         description: String,
         sender: String,
+        senderPhone: String,
         receiver: String,
+        receiverPhone: String,
         destination: String,
         notes: String,
         status: String,
         imagePaths: String,
+        sendSms: Boolean,
         onComplete: (Long) -> Unit = {}
     ) {
         viewModelScope.launch {
@@ -92,17 +143,29 @@ class ShipmentViewModel(application: Application) : AndroidViewModel(application
             val s = Shipment(
                 cargoDescription = description.trim(),
                 senderName = sender.trim(),
+                senderPhone = senderPhone.trim(),
                 receiverName = receiver.trim(),
+                receiverPhone = receiverPhone.trim(),
                 destination = destination.trim(),
                 notes = notes.trim(),
                 status = status,
-                imagePath = imagePaths.split("|").firstOrNull() { it.isNotBlank() },
+                imagePath = imagePaths.split("|").firstOrNull { it.isNotBlank() },
                 imagePaths = imagePaths,
                 jalaliYear = today.year,
                 jalaliMonth = today.month,
                 jalaliDay = today.day
             )
             val id = repo.insert(s)
+            if (sendSms && senderPhone.isNotBlank()) {
+                sendAutoSms(s.copy(id = id.toInt()))
+            }
+            // ذخیره خودکار در دفترچه تلفن اگر جدید باشد
+            if (senderPhone.isNotBlank()) {
+                val existing = contactRepo.getByPhone(senderPhone.trim())
+                if (existing == null) {
+                    contactRepo.insert(Contact(name = sender.trim(), phone = senderPhone.trim()))
+                }
+            }
             onComplete(id)
         }
     }
@@ -117,5 +180,19 @@ class ShipmentViewModel(application: Application) : AndroidViewModel(application
 
     fun deleteById(id: Int) {
         viewModelScope.launch { repo.deleteById(id) }
+    }
+
+    // Pending contact picks (from contacts book → Add screen)
+    var pendingSenderName by mutableStateOf("")
+    var pendingSenderPhone by mutableStateOf("")
+    var pendingReceiverName by mutableStateOf("")
+    var pendingReceiverPhone by mutableStateOf("")
+
+    fun deleteContact(contact: Contact) {
+        viewModelScope.launch { contactRepo.delete(contact) }
+    }
+
+    fun saveContact(contact: Contact) {
+        viewModelScope.launch { contactRepo.insert(contact) }
     }
 }

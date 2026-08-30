@@ -3,6 +3,7 @@ package com.example.cargo.ui.screens
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -20,12 +21,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.example.cargo.CargoApp
 import com.example.cargo.data.Shipment
 import com.example.cargo.util.ImageHelper
 import com.example.cargo.viewmodel.ShipmentViewModel
@@ -33,6 +32,9 @@ import java.io.File
 import java.io.FileOutputStream
 import android.Manifest
 import android.content.pm.PackageManager
+import android.telephony.SmsManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import android.widget.Toast
 
@@ -41,7 +43,8 @@ import android.widget.Toast
 fun AddShipmentScreen(
     viewModel: ShipmentViewModel,
     onBack: () -> Unit,
-    initialShipment: Shipment? = null
+    initialShipment: Shipment? = null,
+    onOpenContacts: (which: String) -> Unit = {}
 ) {
     val context = LocalContext.current
     val scroll = rememberScrollState()
@@ -49,13 +52,35 @@ fun AddShipmentScreen(
 
     var description by remember { mutableStateOf(initialShipment?.cargoDescription ?: "") }
     var sender by remember { mutableStateOf(initialShipment?.senderName ?: "") }
+    var senderPhone by remember { mutableStateOf(initialShipment?.senderPhone ?: "") }
     var receiver by remember { mutableStateOf(initialShipment?.receiverName ?: "") }
+    var receiverPhone by remember { mutableStateOf(initialShipment?.receiverPhone ?: "") }
     var destination by remember { mutableStateOf(initialShipment?.destination ?: "") }
     var notes by remember { mutableStateOf(initialShipment?.notes ?: "") }
     var status by remember { mutableStateOf(initialShipment?.status ?: Shipment.STATUS_IN_TRANSIT) }
     var imagePaths by remember { mutableStateOf(initialShipment?.imagePaths ?: "") }
     var imageUris by remember { mutableStateOf<MutableList<Uri>>(mutableListOf()) }
     var statusMenuOpen by remember { mutableStateOf(false) }
+    var sendSms by remember { mutableStateOf(true) }
+
+    // Observe pending contacts from VM
+    val pendingSenderName = viewModel.pendingSenderName
+    val pendingSenderPhone = viewModel.pendingSenderPhone
+    val pendingReceiverName = viewModel.pendingReceiverName
+    val pendingReceiverPhone = viewModel.pendingReceiverPhone
+
+    LaunchedEffect(pendingSenderName, pendingSenderPhone) {
+        if (pendingSenderName.isNotBlank() || pendingSenderPhone.isNotBlank()) {
+            sender = pendingSenderName
+            senderPhone = pendingSenderPhone
+        }
+    }
+    LaunchedEffect(pendingReceiverName, pendingReceiverPhone) {
+        if (pendingReceiverName.isNotBlank() || pendingReceiverPhone.isNotBlank()) {
+            receiver = pendingReceiverName
+            receiverPhone = pendingReceiverPhone
+        }
+    }
 
     // Load existing images
     val paths = imagePaths.split("|").filter { it.isNotBlank() }
@@ -131,17 +156,13 @@ fun AddShipmentScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("📷 عکس‌های بار", fontSize = 14.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
-                        if (imageUris.size < 5) {
-                            Text("${imageUris.size}/5", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
-                        }
+                        Text("📷 عکس‌های بار", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        Text("${imageUris.size}/5", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
                     }
                     Spacer(Modifier.height(8.dp))
 
                     if (imageUris.isNotEmpty()) {
-                        LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             items(imageUris) { uri ->
                                 val index = imageUris.indexOf(uri)
                                 Box(Modifier.size(100.dp).clip(RoundedCornerShape(8.dp))) {
@@ -151,24 +172,26 @@ fun AddShipmentScreen(
                                         contentScale = ContentScale.Crop,
                                         modifier = Modifier.fillMaxSize()
                                     )
-                                    // Delete button on image
                                     Box(
                                         modifier = Modifier
                                             .align(Alignment.TopEnd)
-                                            .padding(4.dp),
+                                            .padding(2.dp)
+                                            .size(24.dp)
+                                            .clip(RoundedCornerShape(50))
+                                            .clickable {
+                                                imageUris.removeAt(index)
+                                                imagePaths = imageUris.map { it.path ?: "" }
+                                                    .filter { it.isNotBlank() }
+                                                    .joinToString("|")
+                                            },
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        IconButton(onClick = {
-                                            imageUris.removeAt(index)
-                                            val newPaths = imageUris.map { it.path }.joinToString("|")
-                                            imagePaths = newPaths
-                                        }) {
-                                            Icon(Icons.Default.Close, "حذف", tint = Color.White)
-                                        }
+                                        Text("✕", color = Color.White, fontSize = 14.sp)
                                     }
                                 }
                             }
                         }
+                        Spacer(Modifier.height(8.dp))
                     }
 
                     if (imageUris.size < 5) {
@@ -184,8 +207,7 @@ fun AddShipmentScreen(
                                         cameraPermLauncher.launch(cameraPermission)
                                     }
                                 },
-                                modifier = Modifier.weight(1f),
-                                enabled = imageUris.size < 5
+                                modifier = Modifier.weight(1f)
                             ) {
                                 Icon(Icons.Default.PhotoCamera, null)
                                 Spacer(Modifier.width(4.dp))
@@ -193,8 +215,7 @@ fun AddShipmentScreen(
                             }
                             OutlinedButton(
                                 onClick = { galleryLauncher.launch("image/*") },
-                                modifier = Modifier.weight(1f),
-                                enabled = imageUris.size < 5
+                                modifier = Modifier.weight(1f)
                             ) {
                                 Icon(Icons.Default.PhotoLibrary, null)
                                 Spacer(Modifier.width(4.dp))
@@ -214,17 +235,39 @@ fun AddShipmentScreen(
                 minLines = 2
             )
 
-            // Sender
-            OutlinedTextField(
-                value = sender,
-                onValueChange = { sender = it },
-                label = { Text("فرستنده") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                leadingIcon = { Icon(Icons.Default.Person, null) }
-            )
+            // Sender + phone (with contacts book)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                OutlinedTextField(
+                    value = sender,
+                    onValueChange = { sender = it },
+                    label = { Text("فرستنده") },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    leadingIcon = { Icon(Icons.Default.Person, null) }
+                )
+                IconButton(onClick = { onOpenContacts("sender") }) {
+                    Icon(Icons.Default.Contacts, "دفترچه تلفن", tint = MaterialTheme.colorScheme.primary)
+                }
+            }
 
-            // Receiver
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                OutlinedTextField(
+                    value = senderPhone,
+                    onValueChange = { senderPhone = it },
+                    label = { Text("شماره صاحب بار") },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    leadingIcon = { Icon(Icons.Default.Phone, null) }
+                )
+                IconButton(onClick = {
+                    // quick pick from contacts
+                    onOpenContacts("sender")
+                }) {
+                    Icon(Icons.Default.ArrowDropDown, "انتخاب از دفترچه", tint = MaterialTheme.colorScheme.primary)
+                }
+            }
+
+            // Receiver + phone
             OutlinedTextField(
                 value = receiver,
                 onValueChange = { receiver = it },
@@ -232,6 +275,14 @@ fun AddShipmentScreen(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 leadingIcon = { Icon(Icons.Default.Person, null) }
+            )
+            OutlinedTextField(
+                value = receiverPhone,
+                onValueChange = { receiverPhone = it },
+                label = { Text("شماره گیرنده (اختیاری)") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                leadingIcon = { Icon(Icons.Default.Phone, null) }
             )
 
             // Destination
@@ -282,18 +333,42 @@ fun AddShipmentScreen(
                 minLines = 2
             )
 
+            // SMS toggle (only for new shipments)
+            if (!isEditing) {
+                Card(Modifier.fillMaxWidth()) {
+                    Row(
+                        Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.Sms, null, tint = MaterialTheme.colorScheme.primary)
+                        Spacer(Modifier.width(10.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text("پیامک خودکار", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text(
+                                "«سفارش شما در حال بسته بندی و ارسال میباشد» به صاحب بار",
+                                fontSize = 11.sp,
+                                color = Color.Gray
+                            )
+                        }
+                        Switch(checked = sendSms, onCheckedChange = { sendSms = it })
+                    }
+                }
+            }
+
             // Save button
             Button(
                 onClick = {
                     if (description.isBlank() || sender.isBlank() || receiver.isBlank()) {
-                        Toast.makeText(context, "فیلدهای ستاره‌دار الزامی هستند", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "توضیحات، فرستنده و گیرنده الزامی هستند", Toast.LENGTH_SHORT).show()
                         return@Button
                     }
                     if (isEditing && initialShipment != null) {
                         val updated = initialShipment.copy(
                             cargoDescription = description.trim(),
                             senderName = sender.trim(),
+                            senderPhone = senderPhone.trim(),
                             receiverName = receiver.trim(),
+                            receiverPhone = receiverPhone.trim(),
                             destination = destination.trim(),
                             notes = notes.trim(),
                             status = status,
@@ -306,11 +381,14 @@ fun AddShipmentScreen(
                         viewModel.insert(
                             description = description,
                             sender = sender,
+                            senderPhone = senderPhone,
                             receiver = receiver,
+                            receiverPhone = receiverPhone,
                             destination = destination,
                             notes = notes,
                             status = status,
-                            imagePaths = imagePaths
+                            imagePaths = imagePaths,
+                            sendSms = sendSms
                         ) {
                             onBack()
                         }
