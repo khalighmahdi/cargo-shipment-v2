@@ -214,8 +214,7 @@ fun SettingsScreen(
             // ===== Contacts book shortcut =====
             if (onOpenContacts != null) {
                 Card(
-                    Modifier.fillMaxWidth(),
-                    onClick = { onOpenContacts() }
+                    Modifier.fillMaxWidth().clickable { onOpenContacts() }
                 ) {
                     Row(
                         Modifier.padding(16.dp),
