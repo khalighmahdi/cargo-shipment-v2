@@ -4,8 +4,10 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -14,7 +16,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -28,27 +34,36 @@ import java.io.FileOutputStream
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
+import android.widget.Toast
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddShipmentScreen(
     viewModel: ShipmentViewModel,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    initialShipment: Shipment? = null
 ) {
     val context = LocalContext.current
     val scroll = rememberScrollState()
+    val isEditing = initialShipment != null
 
-    var description by remember { mutableStateOf("") }
-    var sender by remember { mutableStateOf("") }
-    var receiver by remember { mutableStateOf("") }
-    var destination by remember { mutableStateOf("") }
-    var notes by remember { mutableStateOf("") }
-    var status by remember { mutableStateOf(Shipment.STATUS_IN_TRANSIT) }
-    var imageUri by remember { mutableStateOf<Uri?>(null) }
-    var imagePath by remember { mutableStateOf<String?>(null) }
+    var description by remember { mutableStateOf(initialShipment?.cargoDescription ?: "") }
+    var sender by remember { mutableStateOf(initialShipment?.senderName ?: "") }
+    var receiver by remember { mutableStateOf(initialShipment?.receiverName ?: "") }
+    var destination by remember { mutableStateOf(initialShipment?.destination ?: "") }
+    var notes by remember { mutableStateOf(initialShipment?.notes ?: "") }
+    var status by remember { mutableStateOf(initialShipment?.status ?: Shipment.STATUS_IN_TRANSIT) }
+    var imagePaths by remember { mutableStateOf(initialShipment?.imagePaths ?: "") }
+    var imageUris by remember { mutableStateOf<MutableList<Uri>>(mutableListOf()) }
     var statusMenuOpen by remember { mutableStateOf(false) }
 
-    // Camera
+    // Load existing images
+    val paths = imagePaths.split("|").filter { it.isNotBlank() }
+    if (isEditing && imageUris.isEmpty()) {
+        imageUris.addAll(paths.map { File(it) }.filter { it.exists() }.map { Uri.fromFile(it) })
+    }
+
+    // Camera permission
     val cameraPermission = Manifest.permission.CAMERA
     var hasCameraPerm by remember {
         mutableStateOf(
@@ -65,31 +80,33 @@ fun AddShipmentScreen(
     ) { success ->
         val file = pendingCameraFile
         if (success && file != null && file.exists()) {
-            imagePath = file.absolutePath
-            imageUri = Uri.fromFile(file)
+            val uri = Uri.fromFile(file)
+            val newPaths = if (imagePaths.isEmpty()) file.absolutePath else "$imagePaths|${file.absolutePath}"
+            imagePaths = newPaths
+            imageUris.add(uri)
         }
     }
 
     val galleryLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.GetContent()
-    ) { uri ->
-        uri?.let {
-            // copy to app filesDir
+        ActivityResultContracts.GetMultipleContents()
+    ) { uris ->
+        uris.forEach { uri ->
             val target = ImageHelper.createImageFile(context)
-            context.contentResolver.openInputStream(it)?.use { input ->
+            context.contentResolver.openInputStream(uri)?.use { input ->
                 FileOutputStream(target).use { output ->
                     input.copyTo(output)
                 }
             }
-            imagePath = target.absolutePath
-            imageUri = Uri.fromFile(target)
+            val newPaths = if (imagePaths.isEmpty()) target.absolutePath else "$imagePaths|${target.absolutePath}"
+            imagePaths = newPaths
+            imageUris.add(Uri.fromFile(target))
         }
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("ثبت بار جدید") },
+                title = { Text(if (isEditing) "ویرایش بار" else "ثبت بار جدید") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "بازگشت")
@@ -107,23 +124,54 @@ fun AddShipmentScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
 
-            // Image section
+            // Images grid
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(12.dp)) {
-                    Text("📷 عکس بار", fontSize = 14.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("📷 عکس‌های بار", fontSize = 14.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                        if (imageUris.size < 5) {
+                            Text("${imageUris.size}/5", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
+                        }
+                    }
                     Spacer(Modifier.height(8.dp))
-                    if (imageUri != null) {
-                        AsyncImage(
-                            model = imageUri,
-                            contentDescription = null,
-                            modifier = Modifier.fillMaxWidth().height(200.dp)
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        OutlinedButton(
-                            onClick = { imageUri = null; imagePath = null },
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text("حذف عکس") }
-                    } else {
+
+                    if (imageUris.isNotEmpty()) {
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(imageUris) { uri ->
+                                val index = imageUris.indexOf(uri)
+                                Box(Modifier.size(100.dp).clip(RoundedCornerShape(8.dp))) {
+                                    AsyncImage(
+                                        model = uri,
+                                        contentDescription = null,
+                                        contentScale = androidx.compose.foundation.layout.ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                    // Delete button on image
+                                    Box(
+                                        modifier = Modifier
+                                            .align(Alignment.TopEnd)
+                                            .padding(4.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        IconButton(onClick = {
+                                            imageUris.removeAt(index)
+                                            val newPaths = imageUris.map { it.path }.joinToString("|")
+                                            imagePaths = newPaths
+                                        }) {
+                                            Icon(Icons.Default.Close, "حذف", tint = Color.White)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (imageUris.size < 5) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             OutlinedButton(
                                 onClick = {
@@ -136,7 +184,8 @@ fun AddShipmentScreen(
                                         cameraPermLauncher.launch(cameraPermission)
                                     }
                                 },
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier.weight(1f),
+                                enabled = imageUris.size < 5
                             ) {
                                 Icon(Icons.Default.PhotoCamera, null)
                                 Spacer(Modifier.width(4.dp))
@@ -144,7 +193,8 @@ fun AddShipmentScreen(
                             }
                             OutlinedButton(
                                 onClick = { galleryLauncher.launch("image/*") },
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier.weight(1f),
+                                enabled = imageUris.size < 5
                             ) {
                                 Icon(Icons.Default.PhotoLibrary, null)
                                 Spacer(Modifier.width(4.dp))
@@ -235,24 +285,40 @@ fun AddShipmentScreen(
             // Save button
             Button(
                 onClick = {
-                    viewModel.insert(
-                        description = description,
-                        sender = sender,
-                        receiver = receiver,
-                        destination = destination,
-                        notes = notes,
-                        status = status,
-                        imagePath = imagePath
-                    ) {
+                    if (description.isBlank() || sender.isBlank() || receiver.isBlank()) {
+                        Toast.makeText(context, "فیلدهای ستاره‌دار الزامی هستند", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
+                    if (isEditing && initialShipment != null) {
+                        val updated = initialShipment.copy(
+                            cargoDescription = description.trim(),
+                            senderName = sender.trim(),
+                            receiverName = receiver.trim(),
+                            destination = destination.trim(),
+                            notes = notes.trim(),
+                            status = status,
+                            imagePath = imagePaths.split("|").firstOrNull { it.isNotBlank() },
+                            imagePaths = imagePaths
+                        )
+                        viewModel.update(updated)
                         onBack()
+                    } else {
+                        viewModel.insert(
+                            description = description,
+                            sender = sender,
+                            receiver = receiver,
+                            destination = destination,
+                            notes = notes,
+                            status = status,
+                            imagePaths = imagePaths
+                        ) {
+                            onBack()
+                        }
                     }
                 },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = description.isNotBlank() && sender.isNotBlank() && receiver.isNotBlank()
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Icon(Icons.Default.Save, null)
-                Spacer(Modifier.width(4.dp))
-                Text("ذخیره")
+                Text(if (isEditing) "به‌روزرسانی" else "ذخیره")
             }
         }
     }

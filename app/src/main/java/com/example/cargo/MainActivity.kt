@@ -158,6 +158,24 @@ private fun MainApp(viewModel: ShipmentViewModel) {
                 )
             }
             composable(
+                "edit/{id}",
+                arguments = listOf(navArgument("id") { type = NavType.IntType })
+            ) { backStackEntry ->
+                val id = backStackEntry.arguments?.getInt("id") ?: 0
+                var initial: com.example.cargo.data.Shipment? = null
+                // Get the shipment synchronously from the current list state
+                androidx.compose.runtime.LaunchedEffect(id) {
+                    // handled via collect below
+                }
+                val current by viewModel.filteredShipments.collectAsState()
+                initial = current.firstOrNull { it.id == id }
+                AddShipmentScreen(
+                    viewModel = viewModel,
+                    onBack = { navController.popBackStack() },
+                    initialShipment = initial
+                )
+            }
+            composable(
                 "details/{id}",
                 arguments = listOf(navArgument("id") { type = NavType.IntType })
             ) { backStackEntry ->
@@ -165,7 +183,8 @@ private fun MainApp(viewModel: ShipmentViewModel) {
                 ShipmentDetailsScreen(
                     viewModel = viewModel,
                     shipmentId = id,
-                    onBack = { navController.popBackStack() }
+                    onBack = { navController.popBackStack() },
+                    onEdit = { navController.navigate("edit/$id") }
                 )
             }
         }

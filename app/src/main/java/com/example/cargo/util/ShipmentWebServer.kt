@@ -37,7 +37,7 @@ class ShipmentWebServer(
                 Shipment.STATUS_RETURNED -> "#E53935"
                 else -> "#FFB300"
             }
-            val img = if (!s.imagePath.isNullOrBlank() && File(s.imagePath).exists()) {
+            val img = if (!s.imagePaths.isBlank() && File(s.imagePaths.split("|").first()).exists()) {
                 """<img src="/image${s.id}" class="thumb" loading="lazy">"""
             } else ""
 
@@ -110,7 +110,7 @@ class ShipmentWebServer(
     private fun serveImage(shipmentIdStr: String): Response {
         val id = shipmentIdStr.toIntOrNull() ?: return notFound()
         val shipment = runBlocking { repository.getById(id).first() } ?: return notFound()
-        val path = shipment.imagePath ?: return notFound()
+        val path = shipment.imagePaths.split("|").firstOrNull { it.isNotBlank() } ?: return notFound()
         val file = File(path)
         if (!file.exists()) return notFound()
 

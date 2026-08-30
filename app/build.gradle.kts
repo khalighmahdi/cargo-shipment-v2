@@ -12,13 +12,26 @@ android {
         applicationId = "com.example.cargo"
         minSdk = 24
         targetSdk = 34
-        versionCode = 2
-        versionName = "2.1"
+        versionCode = 3
+        versionName = "2.2"
+    }
+
+    signingConfigs {
+        create("release") {
+            storeFile = file("../keystore/cargo-release.keystore")
+            storePassword = "cargo123"
+            keyAlias = "cargo"
+            keyPassword = "cargo123"
+        }
     }
 
     buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("release")
+        }
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 

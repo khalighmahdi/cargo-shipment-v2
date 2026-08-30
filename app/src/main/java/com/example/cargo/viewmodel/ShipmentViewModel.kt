@@ -84,7 +84,7 @@ class ShipmentViewModel(application: Application) : AndroidViewModel(application
         destination: String,
         notes: String,
         status: String,
-        imagePath: String?,
+        imagePaths: String,
         onComplete: (Long) -> Unit = {}
     ) {
         viewModelScope.launch {
@@ -96,7 +96,8 @@ class ShipmentViewModel(application: Application) : AndroidViewModel(application
                 destination = destination.trim(),
                 notes = notes.trim(),
                 status = status,
-                imagePath = imagePath,
+                imagePath = imagePaths.split("|").firstOrNull() { it.isNotBlank() },
+                imagePaths = imagePaths,
                 jalaliYear = today.year,
                 jalaliMonth = today.month,
                 jalaliDay = today.day

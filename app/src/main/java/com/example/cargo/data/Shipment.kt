@@ -11,8 +11,9 @@ data class Shipment(
     val receiverName: String,
     val destination: String,
     val notes: String,
-    val status: String,           // IN_TRANSIT, DELIVERED, RETURNED
-    val imagePath: String?,       // مسیر فایل عکس
+    val status: String,           // در حال ارسال، تحویل شده، برگشتی
+    val imagePath: String?,       // مسیر عکس اول (سازگاری با نسخه قبل)
+    val imagePaths: String = "",  // مسیرهای همه عکس‌ها جدا شده با |
     val jalaliYear: Int,
     val jalaliMonth: Int,
     val jalaliDay: Int,
