@@ -120,7 +120,23 @@ class ShipmentViewModel(application: Application) : AndroidViewModel(application
 
     /** پیامک تست از صفحه تنظیمات */
     fun sendTestSms(phone: String, onResult: (Boolean, String) -> Unit) {
-        sendAutoSms(Shipment(senderPhone = phone), onResult)
+        val today = JalaliDate.today()
+        val testShipment = Shipment(
+            cargoDescription = "تست",
+            senderName = "تست",
+            senderPhone = phone,
+            receiverName = "تست",
+            receiverPhone = "",
+            destination = "",
+            notes = "",
+            status = Shipment.STATUS_IN_TRANSIT,
+            imagePath = null,
+            imagePaths = "",
+            jalaliYear = today.year,
+            jalaliMonth = today.month,
+            jalaliDay = today.day
+        )
+        sendAutoSms(testShipment, onResult)
     }
 
     private fun markSmsSent(shipment: Shipment) {
