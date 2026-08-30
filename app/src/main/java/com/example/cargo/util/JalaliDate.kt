@@ -3,7 +3,7 @@ package com.example.cargo.util
 import java.util.Calendar
 
 /**
- * تبدیل تاریخ میلادی به شمسی (Jalali) - ساده
+ * تبدیل تاریخ میلادی به شمسی (Jalali)
  */
 object JalaliDate {
 
@@ -26,10 +26,11 @@ object JalaliDate {
     }
 
     /**
-     * تبدیل میلادی به شمسی (الگوریتم ساده)
+     * تبدیل میلادی به شمسی
+     * منبع: الگوریتم استاندارد jalaali-js
      */
-    private fun gregorianToJalali(gy: Int, gm: Int, gd: Int): Date {
-        val g_d_m = intArrayOf(0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334)
+    fun gregorianToJalali(gy0: Int, gm: Int, gd: Int): Date {
+        var gy = gy0
         var jy: Int
         if (gy <= 1600) {
             jy = 0
@@ -39,7 +40,8 @@ object JalaliDate {
             gy -= 1600
         }
         val gy2 = if (gm > 2) gy + 1 else gy
-        var days = 365 * gy + (gy2 + 3) / 4 - (gy2 + 99) / 100 + (gy2 + 399) / 400 - 80 + gd + g_d_m[gm - 1]
+        var days = 365 * gy + (gy2 + 3) / 4 - (gy2 + 99) / 100 + (gy2 + 399) / 400 - 80 + gd +
+                intArrayOf(0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334)[gm - 1]
         jy += 33 * (days / 12053)
         days %= 12053
         jy += 4 * (days / 1461)
