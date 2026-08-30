@@ -239,10 +239,11 @@ fun SettingsScreen(
                             }
                             if (testResult != null) {
                                 Spacer(Modifier.height(4.dp))
+                                val tr = testResult
                                 Text(
-                                    testResult!,
+                                    tr ?: "",
                                     fontSize = 12.sp,
-                                    color = if (testResult!!.startsWith("✅")) Color(0xFF43A047) else Color(0xFFE53935)
+                                    color = if (tr?.startsWith("✅") == true) Color(0xFF43A047) else Color(0xFFE53935)
                                 )
                             }
                         }
