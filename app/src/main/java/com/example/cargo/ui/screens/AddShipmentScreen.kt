@@ -1,6 +1,7 @@
 package com.example.cargo.ui.screens
 
 import android.net.Uri
+import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
@@ -73,9 +74,28 @@ fun AddShipmentScreen(
         hasSmsPerm = granted
         if (!granted) {
             smsPermDeniedBefore = true
-            Toast.makeText(context, "بدون پرمیشن پیامک، ارسال خودکار از سیم‌کارت کار نمی‌کند", Toast.LENGTH_LONG).show()
+            Toast.makeText(
+                context,
+                "پرمیشن رد شد — از App info ← Permissions دستی بده، یا از روش API استفاده کن",
+                Toast.LENGTH_LONG
+            ).show()
         }
     }
+
+    // Some Android 13+ ROMs mark sideloaded apps "Restricted" and silently deny
+    // the runtime dialog. Detect that state and take the user to App info where
+    // they can lift the restriction manually.
+    fun openAppInfo() {
+        try {
+            val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+            intent.data = Uri.parse("package:${context.packageName}")
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
     // اگر پیامک خودکار روشن است، پرمیشن را در همان ورود به صفحه بگیر
     LaunchedEffect(sendSms) {
         if (sendSms && !hasSmsPerm && !smsPermDeniedBefore) {
@@ -349,16 +369,21 @@ fun AddShipmentScreen(
                         Column(Modifier.weight(1f)) {
                             Text("پیامک خودکار", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                             Text(
-                                if (sendSms && !hasSmsPerm) "⚠️ پرمیشن پیامک داده نشده — برای ارسال از سیم‌کارت لازم است"
+                                if (sendSms && !hasSmsPerm) "⚠️ پرمیشن رد شد — از روش API استفاده کن یا پرمیشن را دستی بده"
                                 else "«سفارش شما در حال بسته بندی و ارسال میباشد» به شماره گیرنده",
                                 fontSize = 11.sp,
                                 color = if (sendSms && !hasSmsPerm) Color(0xFFFFB300) else Color.Gray
                             )
                             if (sendSms && !hasSmsPerm) {
-                                TextButton(onClick = {
-                                    smsPermLauncher.launch(Manifest.permission.SEND_SMS)
-                                }) {
-                                    Text("درخواست پرمیشن", fontSize = 12.sp)
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    TextButton(onClick = {
+                                        smsPermLauncher.launch(Manifest.permission.SEND_SMS)
+                                    }) {
+                                        Text("درخواست پرمیشن", fontSize = 12.sp)
+                                    }
+                                    TextButton(onClick = { openAppInfo() }) {
+                                        Text("App info", fontSize = 12.sp)
+                                    }
                                 }
                             }
                         }
