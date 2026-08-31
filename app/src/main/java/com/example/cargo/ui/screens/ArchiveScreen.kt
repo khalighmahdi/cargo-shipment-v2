@@ -13,6 +13,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -39,8 +40,9 @@ fun ArchiveScreen(
     onShipmentClick: (Int) -> Unit
 ) {
     // Navigation state inside archive: null = year list, else month list, else day list
-    var selectedYear by remember { mutableStateOf<Int?>(null) }
-    var selectedMonth by remember { mutableStateOf<Int?>(null) }
+    // rememberSaveable: state survives when returning from details screen (back)
+    var selectedYear by rememberSaveable { mutableStateOf<Int?>(null) }
+    var selectedMonth by rememberSaveable { mutableStateOf<Int?>(null) }
 
     val allShipments by viewModel.filteredShipments.collectAsState()
 
