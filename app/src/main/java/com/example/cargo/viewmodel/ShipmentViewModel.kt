@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -91,6 +92,7 @@ class ShipmentViewModel(application: Application) : AndroidViewModel(application
                 onResult(false, "شماره صاحب بار ثبت نشده")
                 return@launch
             }
+            val phone = normalizePhone(shipment.senderPhone)
             val enabled = firstOf(settings.smsEnabled, true)
             if (!enabled) {
                 onResult(false, "پیامک خودکار خاموش است")
@@ -116,13 +118,13 @@ class ShipmentViewModel(application: Application) : AndroidViewModel(application
                     headersTemplate = headers,
                     apiKey = apiKey,
                     sender = sender,
-                    phone = shipment.senderPhone,
+                    phone = phone,
                     message = template
                 )
                 if (ok) markSmsSent(shipment)
                 onResult(ok, if (ok) "پیامک ارسال شد ✓" else "خطا: $msg")
             } else {
-                val ok = SmsSender.sendViaSim(shipment.senderPhone, template)
+                val ok = SmsSender.sendViaSim(phone, template)
                 if (ok) markSmsSent(shipment)
                 onResult(ok, if (ok) "پیامک ارسال شد ✓" else "خطا در ارسال پیامک (پرمیشن SMS؟)")
             }
@@ -156,9 +158,24 @@ class ShipmentViewModel(application: Application) : AndroidViewModel(application
 
     /** خواندن اولین مقدار از یک Flow (helper ساده) */
     private suspend fun <T> firstOf(flow: Flow<T>, default: T): T {
-        var result = default
-        flow.collect { result = it }
-        return result
+        return flow.firstOrNull() ?: default
+    }
+
+    /** نرمال‌سازی شماره: هر فرمتی → فرمت بین‌المللی +CCC برای API و 0PPP... برای سیم‌کارت ایران */
+    private fun normalizePhone(p: String): String {
+        var s = p.replace(" ", "").replace("-", "").replace("(", "").replace(")", "").trim()
+        // نگه داشتن فقط ارقام و +
+        s = s.filter { it.isDigit() || it == '+' }
+
+        val irMobile = Regex("^\\+98(9\\d{9})$|^0098(9\\d{9})$|^98(9\\d{9})$|^(09\\d{9})$|^(9\\d{9})$")
+        val m = irMobile.find(s)
+        return if (m != null) {
+            val local = "0" + (m.groupValues.filter { it.isNotBlank() }.last())
+            local // فرمت محلی ایران برای هر دو روش کار می‌کنه
+        } else {
+            // شماره خارجی: اگر + ندارد، + اضافه کن (فرمت بین‌المللی)
+            if (s.startsWith("+")) s else "+$s"
+        }
     }
 
     fun insert(
