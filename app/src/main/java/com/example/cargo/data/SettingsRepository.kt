@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.example.cargo.util.SmsSender
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 private val Context.dataStore by preferencesDataStore(name = "settings")
@@ -69,6 +70,35 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun setSmsTemplate(template: String) =
         context.dataStore.edit { it[SMS_TEMPLATE] = template }
+
+    /**
+     * اسنپ‌شات یک‌جا از همه تنظیمات پیامک — یک بار از DataStore می‌خواند تا
+     * خواندن‌های تکه‌تکه (که ممکن است بین‌شان مقدار عوض شود) اتفاق نیفتد.
+     */
+    data class SmsSettings(
+        val enabled: Boolean,
+        val method: String,
+        val apiUrl: String,
+        val apiBody: String,
+        val apiHeaders: String,
+        val apiKey: String,
+        val sender: String,
+        val template: String
+    )
+
+    suspend fun smsSettingsSnapshot(): SmsSettings {
+        val prefs = context.dataStore.data.first()
+        return SmsSettings(
+            enabled = prefs[SMS_ENABLED] ?: true,
+            method = prefs[SMS_METHOD] ?: "sim",
+            apiUrl = prefs[SMS_API_URL] ?: SmsSender.KAVENEGAR_URL,
+            apiBody = prefs[SMS_API_BODY] ?: SmsSender.SMSIR_BODY,
+            apiHeaders = prefs[SMS_API_HEADERS] ?: SmsSender.SMSIR_HEADERS,
+            apiKey = prefs[SMS_API_KEY] ?: "",
+            sender = prefs[SMS_SENDER] ?: "",
+            template = prefs[SMS_TEMPLATE] ?: SmsSender.DEFAULT_MESSAGE
+        )
+    }
 }
 
 object SmsSenderTemplate {

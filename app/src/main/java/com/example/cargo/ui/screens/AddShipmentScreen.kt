@@ -61,6 +61,29 @@ fun AddShipmentScreen(
     var statusMenuOpen by remember { mutableStateOf(false) }
     var sendSms by remember { mutableStateOf(true) }
 
+    // SMS permission for auto-send via SIM (requested here, not only in Settings)
+    var hasSmsPerm by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+    var smsPermDeniedBefore by remember { mutableStateOf(false) }
+    val smsPermLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        hasSmsPerm = granted
+        if (!granted) {
+            smsPermDeniedBefore = true
+            Toast.makeText(context, "بدون پرمیشن پیامک، ارسال خودکار از سیم‌کارت کار نمی‌کند", Toast.LENGTH_LONG).show()
+        }
+    }
+    // اگر پیامک خودکار روشن است، پرمیشن را در همان ورود به صفحه بگیر
+    LaunchedEffect(sendSms) {
+        if (sendSms && !hasSmsPerm && !smsPermDeniedBefore) {
+            smsPermLauncher.launch(Manifest.permission.SEND_SMS)
+        }
+    }
+
     // Observe pending contacts from VM
     val pendingSenderName = viewModel.pendingSenderName
     val pendingSenderPhone = viewModel.pendingSenderPhone
@@ -224,11 +247,11 @@ fun AddShipmentScreen(
                 }
             }
 
-            // Description
+            // Description (now "ارسال توسط")
             OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
-                label = { Text("توضیحات بار") },
+                label = { Text("ارسال توسط") },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2
             )
@@ -343,10 +366,18 @@ fun AddShipmentScreen(
                         Column(Modifier.weight(1f)) {
                             Text("پیامک خودکار", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                             Text(
-                                "«سفارش شما در حال بسته بندی و ارسال میباشد» به صاحب بار",
+                                if (sendSms && !hasSmsPerm) "⚠️ پرمیشن پیامک داده نشده — برای ارسال از سیم‌کارت لازم است"
+                                else "«سفارش شما در حال بسته بندی و ارسال میباشد» به صاحب بار",
                                 fontSize = 11.sp,
-                                color = Color.Gray
+                                color = if (sendSms && !hasSmsPerm) Color(0xFFFFB300) else Color.Gray
                             )
+                            if (sendSms && !hasSmsPerm) {
+                                TextButton(onClick = {
+                                    smsPermLauncher.launch(Manifest.permission.SEND_SMS)
+                                }) {
+                                    Text("درخواست پرمیشن", fontSize = 12.sp)
+                                }
+                            }
                         }
                         Switch(checked = sendSms, onCheckedChange = { sendSms = it })
                     }

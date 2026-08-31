@@ -6,7 +6,6 @@ import androidx.lifecycle.viewModelScope
 import com.example.cargo.CargoApp
 import com.example.cargo.data.Contact
 import com.example.cargo.data.SettingsRepository
-import com.example.cargo.data.SmsSenderTemplate
 import com.example.cargo.data.Shipment
 import com.example.cargo.data.ShipmentRepository
 import com.example.cargo.util.JalaliDate
@@ -22,7 +21,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -92,41 +90,40 @@ class ShipmentViewModel(application: Application) : AndroidViewModel(application
                 onResult(false, "شماره صاحب بار ثبت نشده")
                 return@launch
             }
+            
+            // خواندن یک‌جا از DataStore برای جلوگیری از حالت‌های ناهمگام
+            val settings = settings.smsSettingsSnapshot()
             val phone = normalizePhone(shipment.senderPhone)
-            val enabled = firstOf(settings.smsEnabled, true)
-            if (!enabled) {
+            
+            if (!settings.enabled) {
                 onResult(false, "پیامک خودکار خاموش است")
                 return@launch
             }
-            val method = firstOf(settings.smsMethod, "sim")
-            val template = firstOf(settings.smsTemplate, SmsSenderTemplate.DEFAULT)
-
-            if (method == "api_get" || method == "api_post") {
-                val url = firstOf(settings.smsApiUrl, "")
-                val apiKey = firstOf(settings.smsApiKey, "")
-                if (url.isBlank() || apiKey.isBlank()) {
-                    onResult(false, "آدرس API یا کلید API تنظیم نشده")
-                    return@launch
+            
+            when (settings.method) {
+                "api_get", "api_post" -> {
+                    if (settings.apiUrl.isBlank() || settings.apiKey.isBlank()) {
+                        onResult(false, "آدرس API یا کلید API تنظیم نشده")
+                        return@launch
+                    }
+                    val (ok, msg) = SmsSender.sendViaApi(
+                        method = if (settings.method == "api_post") "POST" else "GET",
+                        urlTemplate = settings.apiUrl,
+                        bodyTemplate = settings.apiBody,
+                        headersTemplate = settings.apiHeaders,
+                        apiKey = settings.apiKey,
+                        sender = settings.sender,
+                        phone = phone,
+                        message = settings.template
+                    )
+                    if (ok) markSmsSent(shipment)
+                    onResult(ok, if (ok) "پیامک ارسال شد ✓" else "خطا: $msg")
                 }
-                val sender = firstOf(settings.smsSender, "")
-                val body = firstOf(settings.smsApiBody, "")
-                val headers = firstOf(settings.smsApiHeaders, "")
-                val (ok, msg) = SmsSender.sendViaApi(
-                    method = if (method == "api_post") "POST" else "GET",
-                    urlTemplate = url,
-                    bodyTemplate = body,
-                    headersTemplate = headers,
-                    apiKey = apiKey,
-                    sender = sender,
-                    phone = phone,
-                    message = template
-                )
-                if (ok) markSmsSent(shipment)
-                onResult(ok, if (ok) "پیامک ارسال شد ✓" else "خطا: $msg")
-            } else {
-                val ok = SmsSender.sendViaSim(phone, template)
-                if (ok) markSmsSent(shipment)
-                onResult(ok, if (ok) "پیامک ارسال شد ✓" else "خطا در ارسال پیامک (پرمیشن SMS؟)")
+                else -> { // sim
+                    val (ok, msg) = SmsSender.sendViaSim(phone, settings.template)
+                    if (ok) markSmsSent(shipment)
+                    onResult(ok, if (ok) "پیامک ارسال شد ✓" else "خطا: $msg")
+                }
             }
         }
     }
@@ -154,11 +151,6 @@ class ShipmentViewModel(application: Application) : AndroidViewModel(application
 
     private fun markSmsSent(shipment: Shipment) {
         viewModelScope.launch { repo.update(shipment.copy(smsSent = true)) }
-    }
-
-    /** خواندن اولین مقدار از یک Flow (helper ساده) */
-    private suspend fun <T> firstOf(flow: Flow<T>, default: T): T {
-        return flow.firstOrNull() ?: default
     }
 
     /** نرمال‌سازی شماره: هر فرمتی → فرمت بین‌المللی +CCC برای API و 0PPP... برای سیم‌کارت ایران */
@@ -210,7 +202,14 @@ class ShipmentViewModel(application: Application) : AndroidViewModel(application
             )
             val id = repo.insert(s)
             if (sendSms && senderPhone.isNotBlank()) {
-                sendAutoSms(s.copy(id = id.toInt()))
+                sendAutoSms(s.copy(id = id.toInt())) { ok, msg ->
+                    // گزارش نتیجه ارسال خودکار به‌صورت Toast (بدون نیاز به UI)
+                    android.widget.Toast.makeText(
+                        getApplication(),
+                        if (ok) "پیامک خودکار ارسال شد ✓" else "پیامک خودکار: $msg",
+                        android.widget.Toast.LENGTH_LONG
+                    ).show()
+                }
             }
             // ذخیره خودکار در دفترچه تلفن اگر جدید باشد
             if (senderPhone.isNotBlank()) {

@@ -484,7 +484,7 @@ fun SettingsScreen(
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("📦 باربری", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    Text("نسخه ۲.۵", fontSize = 12.sp, color = Color.Gray)
+                    Text("نسخه ۲.۷", fontSize = 12.sp, color = Color.Gray)
                 }
             }
         }

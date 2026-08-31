@@ -33,8 +33,8 @@ object SmsSender {
         "{\"lineNumber\": {sender}, \"messageText\": \"{message}\", \"mobiles\": [\"{phone}\"]}"
     const val SMSIR_HEADERS = "X-API-KEY: {api_key}"
 
-    /** ارسال از سیم‌کارت خود گوشی */
-    fun sendViaSim(phone: String, message: String): Boolean {
+    /** ارسال از سیم‌کارت خود گوشی — با گزارش خطای دقیق */
+    fun sendViaSim(phone: String, message: String): Pair<Boolean, String> {
         return try {
             @Suppress("DEPRECATION")
             val sm = SmsManager.getDefault()
@@ -44,10 +44,13 @@ object SmsSender {
             } else {
                 sm.sendMultipartTextMessage(phone, null, parts, null, null)
             }
-            true
+            Pair(true, "OK")
+        } catch (e: SecurityException) {
+            e.printStackTrace()
+            Pair(false, "پرمیشن SMS داده نشده — از تنظیمات گوشی دستی بده")
         } catch (e: Exception) {
             e.printStackTrace()
-            false
+            Pair(false, e.message ?: "خطای نامشخص در ارسال پیامک")
         }
     }
 
