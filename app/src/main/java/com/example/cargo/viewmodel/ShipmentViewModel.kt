@@ -99,15 +99,26 @@ class ShipmentViewModel(application: Application) : AndroidViewModel(application
             val method = firstOf(settings.smsMethod, "sim")
             val template = firstOf(settings.smsTemplate, SmsSenderTemplate.DEFAULT)
 
-            if (method == "api") {
+            if (method == "api_get" || method == "api_post") {
                 val url = firstOf(settings.smsApiUrl, "")
                 val apiKey = firstOf(settings.smsApiKey, "")
-                if (url.isBlank()) {
-                    onResult(false, "آدرس API تنظیم نشده")
+                if (url.isBlank() || apiKey.isBlank()) {
+                    onResult(false, "آدرس API یا کلید API تنظیم نشده")
                     return@launch
                 }
                 val sender = firstOf(settings.smsSender, "")
-                val (ok, msg) = SmsSender.sendViaApi(url, apiKey, sender, shipment.senderPhone, template)
+                val body = firstOf(settings.smsApiBody, "")
+                val headers = firstOf(settings.smsApiHeaders, "")
+                val (ok, msg) = SmsSender.sendViaApi(
+                    method = if (method == "api_post") "POST" else "GET",
+                    urlTemplate = url,
+                    bodyTemplate = body,
+                    headersTemplate = headers,
+                    apiKey = apiKey,
+                    sender = sender,
+                    phone = shipment.senderPhone,
+                    message = template
+                )
                 if (ok) markSmsSent(shipment)
                 onResult(ok, if (ok) "پیامک ارسال شد ✓" else "خطا: $msg")
             } else {

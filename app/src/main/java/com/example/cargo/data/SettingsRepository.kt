@@ -1,10 +1,6 @@
 package com.example.cargo.data
 
 import android.content.Context
-import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
 import com.example.cargo.util.SmsSender
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -17,10 +13,12 @@ class SettingsRepository(private val context: Context) {
         val DARK_MODE = booleanPreferencesKey("dark_mode")
         // SMS settings - generic
         val SMS_ENABLED = booleanPreferencesKey("sms_enabled")
-        val SMS_METHOD = stringPreferencesKey("sms_method")   // "sim" or "api"
-        val SMS_API_URL = stringPreferencesKey("sms_api_url")   // generic URL template
-        val SMS_API_KEY = stringPreferencesKey("sms_api_key")   // API key for the service
-        val SMS_SENDER = stringPreferencesKey("sms_sender")     // sender line number
+        val SMS_METHOD = stringPreferencesKey("sms_method")       // "sim", "api_get", "api_post"
+        val SMS_API_URL = stringPreferencesKey("sms_api_url")     // generic URL template
+        val SMS_API_BODY = stringPreferencesKey("sms_api_body")   // POST body template
+        val SMS_API_HEADERS = stringPreferencesKey("sms_api_headers") // POST headers template
+        val SMS_API_KEY = stringPreferencesKey("sms_api_key")     // API key for the service
+        val SMS_SENDER = stringPreferencesKey("sms_sender")       // sender line number
         val SMS_TEMPLATE = stringPreferencesKey("sms_template")
     }
 
@@ -37,7 +35,9 @@ class SettingsRepository(private val context: Context) {
     // ===== SMS =====
     val smsEnabled: Flow<Boolean> = context.dataStore.data.map { it[SMS_ENABLED] ?: true }
     val smsMethod: Flow<String> = context.dataStore.data.map { it[SMS_METHOD] ?: "sim" }
-    val smsApiUrl: Flow<String> = context.dataStore.data.map { it[SMS_API_URL] ?: SmsSender.KAVENEGAR_TEMPLATE }
+    val smsApiUrl: Flow<String> = context.dataStore.data.map { it[SMS_API_URL] ?: SmsSender.KAVENEGAR_URL }
+    val smsApiBody: Flow<String> = context.dataStore.data.map { it[SMS_API_BODY] ?: SmsSender.SMSIR_BODY }
+    val smsApiHeaders: Flow<String> = context.dataStore.data.map { it[SMS_API_HEADERS] ?: SmsSender.SMSIR_HEADERS }
     val smsApiKey: Flow<String> = context.dataStore.data.map { it[SMS_API_KEY] ?: "" }
     val smsSender: Flow<String> = context.dataStore.data.map { it[SMS_SENDER] ?: "" }
     val smsTemplate: Flow<String> = context.dataStore.data.map { it[SMS_TEMPLATE] ?: SmsSender.DEFAULT_MESSAGE }
@@ -50,6 +50,12 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun setSmsApiUrl(url: String) =
         context.dataStore.edit { it[SMS_API_URL] = url }
+
+    suspend fun setSmsApiBody(body: String) =
+        context.dataStore.edit { it[SMS_API_BODY] = body }
+
+    suspend fun setSmsApiHeaders(headers: String) =
+        context.dataStore.edit { it[SMS_API_HEADERS] = headers }
 
     suspend fun setSmsApiKey(key: String) =
         context.dataStore.edit { it[SMS_API_KEY] = key }

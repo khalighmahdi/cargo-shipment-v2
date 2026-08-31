@@ -4,10 +4,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -17,7 +17,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.cargo.ui.theme.Purple
@@ -30,6 +32,39 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
 import android.widget.Toast
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+
+/** فیلد متنی با دکمه پاک کردن (✕) */
+@Composable
+fun ClearableTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+    singleLine: Boolean = true,
+    minLines: Int = 1,
+    keyboardNumber: Boolean = false
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label) },
+        modifier = modifier,
+        singleLine = singleLine,
+        minLines = if (singleLine) 1 else minLines,
+        keyboardOptions = KeyboardOptions(
+            keyboardType = if (keyboardNumber) KeyboardType.Phone else KeyboardType.Text
+        ),
+        trailingIcon = {
+            if (value.isNotEmpty()) {
+                IconButton(onClick = { onValueChange("") }) {
+                    Icon(Icons.Default.Close, "پاک کردن", tint = Color.Gray)
+                }
+            }
+        }
+    )
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,7 +79,7 @@ fun SettingsScreen(
     // SMS settings state
     val smsEnabled by viewModel.settings.smsEnabled.collectAsState(initial = true)
     val smsMethod by viewModel.settings.smsMethod.collectAsState(initial = "sim")
-    val smsApiUrl by viewModel.settings.smsApiUrl.collectAsState(initial = SmsSender.KAVENEGAR_TEMPLATE)
+    val smsApiUrl by viewModel.settings.smsApiUrl.collectAsState(initial = SmsSender.KAVENEGAR_URL)
     val smsApiKey by viewModel.settings.smsApiKey.collectAsState(initial = "")
     val smsSenderNum by viewModel.settings.smsSender.collectAsState(initial = "")
     val smsTemplate by viewModel.settings.smsTemplate.collectAsState(initial = SmsSender.DEFAULT_MESSAGE)
@@ -62,6 +97,19 @@ fun SettingsScreen(
     val smsPermLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted -> hasSmsPerm = granted }
+
+    // چک دوباره پرمیشن وقتی از تنظیمات گوشی برمی‌گردیم
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                hasSmsPerm = context.checkSelfPermission(android.Manifest.permission.SEND_SMS) ==
+                    android.content.pm.PackageManager.PERMISSION_GRANTED
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     var methodMenuOpen by remember { mutableStateOf(false) }
     var testPhone by remember { mutableStateOf("") }
@@ -135,7 +183,11 @@ fun SettingsScreen(
                             onExpandedChange = { methodMenuOpen = it }
                         ) {
                             OutlinedTextField(
-                                value = if (smsMethod == "sim") "📱 از سیم‌کارت خودم (رایگان)" else "🌐 از API (هر سایت پیامکی)",
+                                value = when (smsMethod) {
+                                    "sim" -> "📱 از سیم‌کارت خودم (رایگان)"
+                                    "api_get" -> "🌐 API - لینک مستقیم (GET)"
+                                    else -> "🌐 API - پیامک.آی‌آر و مشابه (POST)"
+                                },
                                 onValueChange = {},
                                 readOnly = true,
                                 label = { Text("روش ارسال") },
@@ -155,9 +207,26 @@ fun SettingsScreen(
                                     }
                                 )
                                 DropdownMenuItem(
-                                    text = { Text("🌐 از API (هر سایت پیامکی: کاوه‌نگار، فراپیامک، ...)") },
+                                    text = { Text("🌐 API با لینک مستقیم (GET) — کاوه‌نگار و مشابه") },
                                     onClick = {
-                                        scope.launch { viewModel.settings.setSmsMethod("api") }
+                                        scope.launch {
+                                            viewModel.settings.setSmsMethod("api_get")
+                                            viewModel.settings.setSmsApiUrl(SmsSender.KAVENEGAR_URL)
+                                            viewModel.settings.setSmsApiBody("")
+                                            viewModel.settings.setSmsApiHeaders("")
+                                        }
+                                        methodMenuOpen = false
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("🌐 API با درخواست POST — SMS.ir و مشابه") },
+                                    onClick = {
+                                        scope.launch {
+                                            viewModel.settings.setSmsMethod("api_post")
+                                            viewModel.settings.setSmsApiUrl(SmsSender.SMSIR_URL)
+                                            viewModel.settings.setSmsApiBody(SmsSender.SMSIR_BODY)
+                                            viewModel.settings.setSmsApiHeaders(SmsSender.SMSIR_HEADERS)
+                                        }
                                         methodMenuOpen = false
                                     }
                                 )
@@ -166,34 +235,58 @@ fun SettingsScreen(
 
                         Spacer(Modifier.height(8.dp))
 
-                        if (smsMethod == "api") {
-                            // API URL template
-                            OutlinedTextField(
+                        if (smsMethod.startsWith("api")) {
+                            ClearableTextField(
                                 value = smsApiUrl,
-                                onValueChange = { scope.launch { viewModel.settings.setSmsApiUrl(it.trim()) } },
-                                label = { Text("آدرس API (قالب)") },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true
+                                onValueChange = { scope.launch { viewModel.settings.setSmsApiUrl(it) } },
+                                label = "آدرس API",
+                                modifier = Modifier.fillMaxWidth()
                             )
                             Spacer(Modifier.height(8.dp))
-                            OutlinedTextField(
+                            ClearableTextField(
                                 value = smsApiKey,
-                                onValueChange = { scope.launch { viewModel.settings.setSmsApiKey(it.trim()) } },
-                                label = { Text("API Key") },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true
+                                onValueChange = { scope.launch { viewModel.settings.setSmsApiKey(it) } },
+                                label = "API Key (کلید از پنل سایت)",
+                                modifier = Modifier.fillMaxWidth()
                             )
                             Spacer(Modifier.height(8.dp))
-                            OutlinedTextField(
+                            ClearableTextField(
                                 value = smsSenderNum,
-                                onValueChange = { scope.launch { viewModel.settings.setSmsSender(it.trim()) } },
-                                label = { Text("شماره خط ارسال (اختیاری)") },
+                                onValueChange = { scope.launch { viewModel.settings.setSmsSender(it) } },
+                                label = "شماره خط ارسال (مثلا 3000...) ",
                                 modifier = Modifier.fillMaxWidth(),
-                                singleLine = true
+                                keyboardNumber = true
                             )
+                            if (smsMethod == "api_post") {
+                                Spacer(Modifier.height(8.dp))
+                                // Body + headers prefilled with SMS.ir template - editable for advanced use
+                                val bodyFlow = viewModel.settings.smsApiBody
+                                val headersFlow = viewModel.settings.smsApiHeaders
+                                val bodyVal by bodyFlow.collectAsState(initial = SmsSender.SMSIR_BODY)
+                                val headersVal by headersFlow.collectAsState(initial = SmsSender.SMSIR_HEADERS)
+                                ClearableTextField(
+                                    value = bodyVal,
+                                    onValueChange = { scope.launch { viewModel.settings.setSmsApiBody(it) } },
+                                    label = "بدنه درخواست JSON (پیشرفته)",
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = false,
+                                    minLines = 2
+                                )
+                                Spacer(Modifier.height(8.dp))
+                                ClearableTextField(
+                                    value = headersVal,
+                                    onValueChange = { scope.launch { viewModel.settings.setSmsApiHeaders(it) } },
+                                    label = "هدرها (پیشرفته)",
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
                             Spacer(Modifier.height(4.dp))
                             Text(
-                                "placeholders: {api_key} {sender} {phone} {message}\nمثال کاوه‌نگار: ${SmsSender.KAVENEGAR_TEMPLATE}",
+                                "placeholder ها: {api_key} {sender} {phone} {message}\n" +
+                                    if (smsMethod == "api_post")
+                                        "SMS.ir: پنل ← برنامه‌نویسان ← کلید API — شماره خط را وارد کن"
+                                    else
+                                        "کاوه‌نگار: پنل ← تنظیمات ← API Key",
                                 fontSize = 11.sp,
                                 color = Color.Gray
                             )
@@ -218,44 +311,49 @@ fun SettingsScreen(
                                     }
                                 }
                             }
-                            Spacer(Modifier.height(8.dp))
-                            // Test SMS button
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                OutlinedTextField(
-                                    value = testPhone,
-                                    onValueChange = { testPhone = it },
-                                    label = { Text("شماره برای تست") },
-                                    modifier = Modifier.weight(1f),
-                                    singleLine = true
-                                )
-                                Button(onClick = {
-                                    testResult = null
-                                    scope.launch { viewModel.sendTestSms(testPhone) { ok, msg ->
+                        }
+
+                        Spacer(Modifier.height(8.dp))
+
+                        // Test SMS
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            ClearableTextField(
+                                value = testPhone,
+                                onValueChange = { testPhone = it },
+                                label = "شماره برای تست",
+                                modifier = Modifier.weight(1f),
+                                keyboardNumber = true
+                            )
+                            Button(onClick = {
+                                testResult = null
+                                scope.launch {
+                                    viewModel.sendTestSms(testPhone) { ok, msg ->
                                         testResult = if (ok) "✅ $msg" else "❌ $msg"
-                                    } }
-                                }) {
-                                    Text("📤 پیامک تست")
+                                    }
                                 }
+                            }) {
+                                Text("📤 تست")
                             }
-                            if (testResult != null) {
-                                Spacer(Modifier.height(4.dp))
-                                val tr = testResult
-                                Text(
-                                    tr ?: "",
-                                    fontSize = 12.sp,
-                                    color = if (tr?.startsWith("✅") == true) Color(0xFF43A047) else Color(0xFFE53935)
-                                )
-                            }
+                        }
+                        if (testResult != null) {
+                            Spacer(Modifier.height(4.dp))
+                            val tr = testResult
+                            Text(
+                                tr ?: "",
+                                fontSize = 12.sp,
+                                color = if (tr?.startsWith("✅") == true) Color(0xFF43A047) else Color(0xFFE53935)
+                            )
                         }
 
                         Spacer(Modifier.height(8.dp))
 
                         // Message template
-                        OutlinedTextField(
+                        ClearableTextField(
                             value = smsTemplate,
                             onValueChange = { scope.launch { viewModel.settings.setSmsTemplate(it) } },
-                            label = { Text("متن پیامک") },
+                            label = "متن پیامک",
                             modifier = Modifier.fillMaxWidth(),
+                            singleLine = false,
                             minLines = 2
                         )
                     }
@@ -386,7 +484,7 @@ fun SettingsScreen(
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("📦 باربری", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    Text("نسخه ۲.۴", fontSize = 12.sp, color = Color.Gray)
+                    Text("نسخه ۲.۵", fontSize = 12.sp, color = Color.Gray)
                 }
             }
         }
