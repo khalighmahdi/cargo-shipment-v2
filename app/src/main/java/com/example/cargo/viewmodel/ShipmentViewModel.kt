@@ -83,11 +83,11 @@ class ShipmentViewModel(application: Application) : AndroidViewModel(application
     fun getByMonth(year: Int, month: Int): Flow<List<Shipment>> = repo.getByMonth(year, month)
     fun getByDay(year: Int, month: Int, day: Int): Flow<List<Shipment>> = repo.getByDay(year, month, day)
 
-    /** ارسال پیامک خودکار بر اساس تنظیمات (فقط فرستنده/صاحب بار) */
+    /** ارسال پیامک خودکار بر اساس تنظیمات (به شماره گیرنده) */
     fun sendAutoSms(shipment: Shipment, onResult: (Boolean, String) -> Unit = { _, _ -> }) {
         viewModelScope.launch {
             if (shipment.senderPhone.isBlank()) {
-                onResult(false, "شماره صاحب بار ثبت نشده")
+                onResult(false, "شماره گیرنده ثبت نشده")
                 return@launch
             }
             

@@ -20,7 +20,7 @@ data class Shipment(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val cargoDescription: String,
     val senderName: String,
-    val senderPhone: String = "",      // شماره صاحب بار (فرستنده)
+    val senderPhone: String = "",      // شماره گیرنده (سمت چپ فرم) — پیامک خودکار به این شماره می‌رود
     val receiverName: String,
     val receiverPhone: String = "",    // شماره گیرنده
     val destination: String,

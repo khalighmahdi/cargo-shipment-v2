@@ -99,6 +99,7 @@ fun ShipmentDetailsScreen(
                 DetailRow("📦 توضیحات", s.cargoDescription.ifBlank { "-" })
                 DetailRow("👤 فرستنده", s.senderName)
                 DetailRow("👤 گیرنده", s.receiverName)
+                if (s.senderPhone.isNotBlank()) DetailRow("📞 شماره گیرنده", s.senderPhone)
                 if (s.destination.isNotBlank()) DetailRow("📍 مقصد", s.destination)
                 DetailRow("📅 تاریخ", "${s.jalaliYear}/${s.jalaliMonth.toString().padStart(2, '0')}/${s.jalaliDay.toString().padStart(2, '0')}")
                 if (s.notes.isNotBlank()) DetailRow("📝 یادداشت", s.notes)

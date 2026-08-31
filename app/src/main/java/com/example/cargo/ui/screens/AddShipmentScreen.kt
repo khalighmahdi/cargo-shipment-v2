@@ -52,7 +52,6 @@ fun AddShipmentScreen(
     var sender by remember { mutableStateOf(initialShipment?.senderName ?: "") }
     var senderPhone by remember { mutableStateOf(initialShipment?.senderPhone ?: "") }
     var receiver by remember { mutableStateOf(initialShipment?.receiverName ?: "") }
-    var receiverPhone by remember { mutableStateOf(initialShipment?.receiverPhone ?: "") }
     var destination by remember { mutableStateOf(initialShipment?.destination ?: "") }
     var notes by remember { mutableStateOf(initialShipment?.notes ?: "") }
     var status by remember { mutableStateOf(initialShipment?.status ?: Shipment.STATUS_IN_TRANSIT) }
@@ -87,19 +86,11 @@ fun AddShipmentScreen(
     // Observe pending contacts from VM
     val pendingSenderName = viewModel.pendingSenderName
     val pendingSenderPhone = viewModel.pendingSenderPhone
-    val pendingReceiverName = viewModel.pendingReceiverName
-    val pendingReceiverPhone = viewModel.pendingReceiverPhone
 
     LaunchedEffect(pendingSenderName, pendingSenderPhone) {
         if (pendingSenderName.isNotBlank() || pendingSenderPhone.isNotBlank()) {
             sender = pendingSenderName
             senderPhone = pendingSenderPhone
-        }
-    }
-    LaunchedEffect(pendingReceiverName, pendingReceiverPhone) {
-        if (pendingReceiverName.isNotBlank() || pendingReceiverPhone.isNotBlank()) {
-            receiver = pendingReceiverName
-            receiverPhone = pendingReceiverPhone
         }
     }
 
@@ -275,7 +266,7 @@ fun AddShipmentScreen(
                 OutlinedTextField(
                     value = senderPhone,
                     onValueChange = { senderPhone = it },
-                    label = { Text("شماره صاحب بار") },
+                    label = { Text("شماره گیرنده") },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
                     leadingIcon = { Icon(Icons.Default.Phone, null) }
@@ -288,7 +279,7 @@ fun AddShipmentScreen(
                 }
             }
 
-            // Receiver + phone
+            // Receiver (no phone field — senderPhone doubles as receiver number)
             OutlinedTextField(
                 value = receiver,
                 onValueChange = { receiver = it },
@@ -296,14 +287,6 @@ fun AddShipmentScreen(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 leadingIcon = { Icon(Icons.Default.Person, null) }
-            )
-            OutlinedTextField(
-                value = receiverPhone,
-                onValueChange = { receiverPhone = it },
-                label = { Text("شماره گیرنده (اختیاری)") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                leadingIcon = { Icon(Icons.Default.Phone, null) }
             )
 
             // Destination
@@ -367,7 +350,7 @@ fun AddShipmentScreen(
                             Text("پیامک خودکار", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                             Text(
                                 if (sendSms && !hasSmsPerm) "⚠️ پرمیشن پیامک داده نشده — برای ارسال از سیم‌کارت لازم است"
-                                else "«سفارش شما در حال بسته بندی و ارسال میباشد» به صاحب بار",
+                                else "«سفارش شما در حال بسته بندی و ارسال میباشد» به شماره گیرنده",
                                 fontSize = 11.sp,
                                 color = if (sendSms && !hasSmsPerm) Color(0xFFFFB300) else Color.Gray
                             )
@@ -397,7 +380,7 @@ fun AddShipmentScreen(
                             senderName = sender.trim(),
                             senderPhone = senderPhone.trim(),
                             receiverName = receiver.trim(),
-                            receiverPhone = receiverPhone.trim(),
+                            receiverPhone = senderPhone.trim(),
                             destination = destination.trim(),
                             notes = notes.trim(),
                             status = status,
@@ -412,7 +395,7 @@ fun AddShipmentScreen(
                             sender = sender,
                             senderPhone = senderPhone,
                             receiver = receiver,
-                            receiverPhone = receiverPhone,
+                            receiverPhone = senderPhone,
                             destination = destination,
                             notes = notes,
                             status = status,

@@ -164,7 +164,7 @@ fun SettingsScreen(
                         Spacer(Modifier.width(12.dp))
                         Column(Modifier.weight(1f)) {
                             Text("پیامک خودکار", fontWeight = FontWeight.Bold)
-                            Text("پس از ثبت بار به صاحب بار پیام بده", fontSize = 12.sp, color = Color.Gray)
+                            Text("پس از ثبت بار به شماره گیرنده پیام بده", fontSize = 12.sp, color = Color.Gray)
                         }
                         Switch(
                             checked = smsEnabled,
@@ -484,7 +484,7 @@ fun SettingsScreen(
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("📦 باربری", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    Text("نسخه ۲.۷", fontSize = 12.sp, color = Color.Gray)
+                    Text("نسخه ۲.۸", fontSize = 12.sp, color = Color.Gray)
                 }
             }
         }
