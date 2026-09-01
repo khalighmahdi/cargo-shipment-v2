@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.collectAsState
@@ -55,6 +56,12 @@ fun ShipmentDetailsScreen(
                 },
                 actions = {
                     if (s != null) {
+                        IconButton(onClick = {
+                            val ok = com.example.cargo.util.ShipmentSharer.share(context, s)
+                            if (!ok) Toast.makeText(context, "خطا در اشتراک‌گذاری", Toast.LENGTH_SHORT).show()
+                        }) {
+                            Icon(Icons.Default.Share, "اشتراک‌گذاری", tint = MaterialTheme.colorScheme.primary)
+                        }
                         IconButton(onClick = { onEdit(s.id) }) {
                             Icon(Icons.Default.Edit, "ویرایش", tint = MaterialTheme.colorScheme.primary)
                         }
