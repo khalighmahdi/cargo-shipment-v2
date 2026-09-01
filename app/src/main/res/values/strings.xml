@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">باربری شریفان</string>
+    <string name="app_name">فروشگاه شریفیان</string>
     <string name="dashboard">داشبورد</string>
     <string name="add_shipment">ثبت بار جدید</string>
     <string name="search">جستجو...</string>

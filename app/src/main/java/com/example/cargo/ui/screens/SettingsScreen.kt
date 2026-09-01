@@ -483,7 +483,7 @@ fun SettingsScreen(
             // ===== About =====
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("📦 باربری شریفان", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text("📦 فروشگاه شریفیان", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     Text("نسخه ۳.۵", fontSize = 12.sp, color = Color.Gray)
                 }
             }
