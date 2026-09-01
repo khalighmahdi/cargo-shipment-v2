@@ -23,8 +23,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import com.example.cargo.ui.theme.AuroraBackground
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -69,7 +71,7 @@ class MainActivity : ComponentActivity() {
             CargoTheme(darkTheme = darkMode) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+                    color = Color.Transparent
                 ) {
                     MainApp(viewModel)
                 }
@@ -96,6 +98,7 @@ private fun MainApp(viewModel: ShipmentViewModel) {
     var pickTarget by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
+        containerColor = Color.Transparent,
         bottomBar = {
             if (showBottomBar) {
                 NavigationBar {
@@ -137,10 +140,25 @@ private fun MainApp(viewModel: ShipmentViewModel) {
             }
         }
     ) { padding ->
+        AuroraBackground {
         NavHost(
             navController = navController,
             startDestination = "dashboard",
-            modifier = Modifier.padding(padding)
+            modifier = Modifier.padding(padding),
+            enterTransition = {
+                androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(260)) +
+                    androidx.compose.animation.slideInVertically(androidx.compose.animation.core.tween(260)) { it / 24 }
+            },
+            exitTransition = {
+                androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(180))
+            },
+            popEnterTransition = {
+                androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(220))
+            },
+            popExitTransition = {
+                androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(180)) +
+                    androidx.compose.animation.slideOutVertically(androidx.compose.animation.core.tween(220)) { it / 24 }
+            }
         ) {
             composable("dashboard") {
                 DashboardScreen(
@@ -222,6 +240,7 @@ private fun MainApp(viewModel: ShipmentViewModel) {
                     }
                 )
             }
+        }
         }
     }
 }

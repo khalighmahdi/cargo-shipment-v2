@@ -153,20 +153,24 @@ class ShipmentViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch { repo.update(shipment.copy(smsSent = true)) }
     }
 
-    /** نرمال‌سازی شماره: هر فرمتی → فرمت بین‌المللی +CCC برای API و 0PPP... برای سیم‌کارت ایران */
+    /** نرمال‌سازی شماره: هر فرمتی → فرمت محلی 09xxxxxxxxx (هر دو روش سیم‌کارت و API ایران) */
     private fun normalizePhone(p: String): String {
         var s = p.replace(" ", "").replace("-", "").replace("(", "").replace(")", "").trim()
         // نگه داشتن فقط ارقام و +
         s = s.filter { it.isDigit() || it == '+' }
 
-        val irMobile = Regex("^\\+98(9\\d{9})$|^0098(9\\d{9})$|^98(9\\d{9})$|^(09\\d{9})$|^(9\\d{9})$")
-        val m = irMobile.find(s)
-        return if (m != null) {
-            val local = "0" + (m.groupValues.filter { it.isNotBlank() }.last())
-            local // فرمت محلی ایران برای هر دو روش کار می‌کنه
-        } else {
-            // شماره خارجی: اگر + ندارد، + اضافه کن (فرمت بین‌المللی)
-            if (s.startsWith("+")) s else "+$s"
+        return when {
+            // 09xxxxxxxxx (ایران، محلی) — همان‌طور که هست
+            Regex("^09\\d{9}$").matches(s) -> s
+            // 9xxxxxxxxx (ایران، بدون صفر) → صفر اضافه کن
+            Regex("^9\\d{9}$").matches(s) -> "0$s"
+            // +98 / 0098 / 98 → فرمت محلی
+            Regex("^\\+98(9\\d{9})$").matches(s) -> "0" + s.substring(3)
+            Regex("^0098(9\\d{9})$").matches(s) -> "0" + s.substring(4)
+            Regex("^98(9\\d{9})$").matches(s) -> "0" + s.substring(2)
+            // شماره خارجی: + ندارد → اضافه کن
+            s.startsWith("+") -> s
+            else -> "+$s"
         }
     }
 
