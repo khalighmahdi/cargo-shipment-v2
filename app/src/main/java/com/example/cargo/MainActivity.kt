@@ -127,7 +127,9 @@ private fun MainApp(viewModel: ShipmentViewModel) {
             if (currentRoute == "dashboard") {
                 FloatingActionButton(
                     onClick = { navController.navigate("add") },
-                    containerColor = MaterialTheme.colorScheme.primary
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(18.dp),
+                    elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 8.dp)
                 ) {
                     Icon(Icons.Filled.Add, "ثبت بار جدید")
                 }

@@ -16,9 +16,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.cargo.data.Shipment
+import com.example.cargo.ui.theme.AuroraBackground
+import com.example.cargo.ui.theme.brandGradient
 import com.example.cargo.viewmodel.ShipmentViewModel
 import com.example.cargo.util.JalaliDate
 import com.example.cargo.util.CsvExporter
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalContext
 import android.widget.Toast
 
@@ -40,28 +46,34 @@ fun DashboardScreen(
     val today = remember { JalaliDate.today() }
 
     Scaffold(
+        containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground
+                ),
                 title = {
                     Column {
                         Text("📦 باربری", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                        Text(today.formatWithMonthName(), fontSize = 12.sp, color = Color.Gray)
+                        Text(today.formatWithMonthName(), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             )
         }
     ) { padding ->
+        AuroraBackground {
         Column(modifier = Modifier.padding(padding).fillMaxSize()) {
 
-            // Stats cards
+            // Stats cards — hero row with gradient accents
             Row(
-                modifier = Modifier.fillMaxWidth().padding(8.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                modifier = Modifier.fillMaxWidth().padding(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                StatCard("کل", total.toString(), Color(0xFF1565C0), Modifier.weight(1f).padding(4.dp))
-                StatCard("در حال ارسال", inTransit.toString(), Color(0xFFFFA000), Modifier.weight(1f).padding(4.dp))
-                StatCard("تحویل شده", delivered.toString(), Color(0xFF2E7D32), Modifier.weight(1f).padding(4.dp))
-                StatCard("برگشتی", returned.toString(), Color(0xFFC62828), Modifier.weight(1f).padding(4.dp))
+                StatCard("کل", total.toString(), Color(0xFF60A5FA), Modifier.weight(1f))
+                StatCard("در حال ارسال", inTransit.toString(), Color(0xFFFBBF24), Modifier.weight(1f))
+                StatCard("تحویل شده", delivered.toString(), Color(0xFF34D399), Modifier.weight(1f))
+                StatCard("برگشتی", returned.toString(), Color(0xFFF87171), Modifier.weight(1f))
             }
 
             // Search
@@ -115,21 +127,32 @@ fun DashboardScreen(
                 }
             }
         }
+        }
     }
 }
 
 @Composable
 private fun StatCard(label: String, value: String, color: Color, modifier: Modifier = Modifier) {
     Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = color.copy(alpha = 0.1f))
+        modifier = modifier.shadow(4.dp, RoundedCornerShape(16.dp)),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
+        )
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(8.dp),
+            modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp, horizontal = 4.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Box(
+                Modifier
+                    .size(width = 22.dp, height = 3.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(color)
+            )
+            Spacer(Modifier.height(6.dp))
             Text(value, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = color)
-            Text(label, fontSize = 10.sp, color = Color.DarkGray)
+            Text(label, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -137,25 +160,34 @@ private fun StatCard(label: String, value: String, color: Color, modifier: Modif
 @Composable
 private fun ShipmentCard(shipment: Shipment, onClick: () -> Unit) {
     Card(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
-        onClick = onClick
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 5.dp)
+            .shadow(6.dp, RoundedCornerShape(18.dp)),
+        shape = RoundedCornerShape(18.dp),
+        onClick = onClick,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
+        )
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(modifier = Modifier.padding(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     shipment.cargoDescription.ifBlank { "(بدون توضیح)" },
                     fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium,
+                    fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f)
                 )
                 StatusBadge(shipment.status)
             }
-            Spacer(modifier = Modifier.height(4.dp))
-            Text("👤 ${shipment.senderName} → ${shipment.receiverName}", fontSize = 13.sp, color = Color.DarkGray)
+            Spacer(modifier = Modifier.height(6.dp))
+            Text("👤 ${shipment.senderName} → ${shipment.receiverName}", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (shipment.destination.isNotBlank()) {
-                Text("📍 ${shipment.destination}", fontSize = 13.sp, color = Color.DarkGray)
+                Spacer(Modifier.height(2.dp))
+                Text("📍 ${shipment.destination}", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Text("📅 ${shipment.jalaliYear}/${shipment.jalaliMonth.toString().padStart(2, '0')}/${shipment.jalaliDay.toString().padStart(2, '0')}", fontSize = 11.sp, color = Color.Gray)
+            Spacer(Modifier.height(2.dp))
+            Text("📅 ${shipment.jalaliYear}/${shipment.jalaliMonth.toString().padStart(2, '0')}/${shipment.jalaliDay.toString().padStart(2, '0')}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
         }
     }
 }
