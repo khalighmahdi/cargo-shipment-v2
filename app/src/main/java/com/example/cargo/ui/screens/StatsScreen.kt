@@ -68,9 +68,9 @@ fun StatsScreen(
     }
     val maxMonthly = (monthly.maxOrNull() ?: 0).coerceAtLeast(1)
 
-    // top customers (فرستنده)
+    // top customers (گیرنده — چون خود کاربر فرستنده است)
     val topSenders = remember(yearShipments) {
-        yearShipments.groupBy { it.senderName.trim() }
+        yearShipments.groupBy { it.receiverName.trim() }
             .filter { it.key.isNotBlank() }
             .map { it.key to it.value.size }
             .sortedByDescending { it.second }
@@ -138,7 +138,7 @@ fun StatsScreen(
                 }
 
                 // ===== Top customers =====
-                StatsCard(title = "👥 پرتکرارترین مشتری‌ها (فرستنده)") {
+                StatsCard(title = "👥 پرتکرارترین مشتری‌ها (گیرنده)") {
                     if (topSenders.isEmpty()) EmptyHint() else {
                         topSenders.forEachIndexed { i, (name, count) ->
                             RankRow(

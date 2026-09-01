@@ -119,7 +119,7 @@ fun DashboardScreen(
                         Spacer(Modifier.width(12.dp))
                         Column {
                             Text(
-                                "شرکت باربری شریفان",
+                                "فروشگاه شریفیان",
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 16.sp
