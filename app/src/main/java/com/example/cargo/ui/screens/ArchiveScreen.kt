@@ -21,7 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.cargo.data.Shipment
-import com.example.cargo.ui.theme.Purple
+import com.example.cargo.ui.theme.Emerald
 import com.example.cargo.viewmodel.ShipmentViewModel
 import com.example.cargo.util.JalaliDate
 
@@ -176,7 +176,7 @@ private fun FolderCard(
             Icon(
                 icon,
                 contentDescription = null,
-                tint = Purple,
+                tint = Emerald,
                 modifier = Modifier.size(36.dp)
             )
             Spacer(Modifier.width(12.dp))
@@ -185,8 +185,8 @@ private fun FolderCard(
                 Text(subtitle, fontSize = 12.sp, color = Color.Gray)
             }
             Badge(
-                containerColor = Purple.copy(alpha = 0.2f),
-                contentColor = Purple
+                containerColor = Emerald.copy(alpha = 0.2f),
+                contentColor = Emerald
             ) {
                 Text("$count")
             }

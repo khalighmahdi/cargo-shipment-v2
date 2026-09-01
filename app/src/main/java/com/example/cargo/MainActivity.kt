@@ -43,6 +43,7 @@ import com.example.cargo.ui.screens.ContactsScreen
 import com.example.cargo.ui.screens.DashboardScreen
 import com.example.cargo.ui.screens.SettingsScreen
 import com.example.cargo.ui.screens.ShipmentDetailsScreen
+import com.example.cargo.ui.screens.StatsScreen
 import com.example.cargo.ui.theme.CargoTheme
 import com.example.cargo.viewmodel.ShipmentViewModel
 
@@ -164,7 +165,14 @@ private fun MainApp(viewModel: ShipmentViewModel) {
                 DashboardScreen(
                     viewModel = viewModel,
                     onAdd = { navController.navigate("add") },
-                    onShipmentClick = { id -> navController.navigate("details/$id") }
+                    onShipmentClick = { id -> navController.navigate("details/$id") },
+                    onOpenStats = { navController.navigate("stats") }
+                )
+            }
+            composable("stats") {
+                StatsScreen(
+                    viewModel = viewModel,
+                    onBack = { navController.popBackStack() }
                 )
             }
             composable("archive") {

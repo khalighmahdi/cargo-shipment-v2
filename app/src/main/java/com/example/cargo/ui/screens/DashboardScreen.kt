@@ -1,39 +1,53 @@
 package com.example.cargo.ui.screens
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.cargo.R
 import com.example.cargo.data.Shipment
 import com.example.cargo.ui.theme.AuroraBackground
+import com.example.cargo.ui.theme.Gold
 import com.example.cargo.ui.theme.brandGradient
-import com.example.cargo.viewmodel.ShipmentViewModel
 import com.example.cargo.util.JalaliDate
-import com.example.cargo.util.CsvExporter
-import androidx.compose.foundation.background
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
+import com.example.cargo.viewmodel.ShipmentViewModel
 import androidx.compose.ui.platform.LocalContext
 import android.widget.Toast
+import androidx.compose.material.icons.outlined.Dashboard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
     viewModel: ShipmentViewModel,
     onAdd: () -> Unit,
-    onShipmentClick: (Int) -> Unit
+    onShipmentClick: (Int) -> Unit,
+    onOpenStats: () -> Unit
 ) {
     val context = LocalContext.current
     val shipments by viewModel.filteredShipments.collectAsState()
@@ -55,8 +69,22 @@ fun DashboardScreen(
                 ),
                 title = {
                     Column {
-                        Text("📦 باربری", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                painter = painterResource(R.drawable.logo_sharifan_white),
+                                contentDescription = "شریفان",
+                                modifier = Modifier.height(26.dp),
+                                tint = Color.Unspecified
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text("📦 باربری", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                        }
                         Text(today.formatWithMonthName(), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onOpenStats) {
+                        Icon(Icons.Outlined.Dashboard, "داشبورد آماری")
                     }
                 }
             )
@@ -65,9 +93,56 @@ fun DashboardScreen(
         AuroraBackground {
         Column(modifier = Modifier.padding(padding).fillMaxSize()) {
 
+            // ===== Hero: brand gradient banner with logo + total =====
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+            ) {
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .background(brandGradient())
+                        .padding(16.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            painter = painterResource(R.drawable.logo_sharifan_white),
+                            contentDescription = null,
+                            modifier = Modifier.height(34.dp),
+                            tint = Color.Unspecified
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                "شرکت باربری شریفان",
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp
+                            )
+                            Text(
+                                "$total بار ثبت شده تاکنون",
+                                color = Color.White.copy(alpha = 0.85f),
+                                fontSize = 12.sp
+                            )
+                        }
+                        Spacer(Modifier.weight(1f))
+                        // gold sparkle dot
+                        Box(
+                            Modifier
+                                .size(10.dp)
+                                .clip(CircleShape)
+                                .background(Gold)
+                        )
+                    }
+                }
+            }
+
             // Stats cards — hero row with gradient accents
             Row(
-                modifier = Modifier.fillMaxWidth().padding(12.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 StatCard("کل", total.toString(), Color(0xFF60A5FA), Modifier.weight(1f))
@@ -80,7 +155,7 @@ fun DashboardScreen(
             OutlinedTextField(
                 value = search,
                 onValueChange = { viewModel.setSearch(it) },
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
                 placeholder = { Text("🔍 جستجو...") },
                 singleLine = true,
                 trailingIcon = {
@@ -94,7 +169,7 @@ fun DashboardScreen(
 
             // Filter chips
             Row(
-                modifier = Modifier.fillMaxWidth().padding(8.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 FilterChip(
@@ -134,7 +209,7 @@ fun DashboardScreen(
 @Composable
 private fun StatCard(label: String, value: String, color: Color, modifier: Modifier = Modifier) {
     Card(
-        modifier = modifier.shadow(4.dp, RoundedCornerShape(16.dp)),
+        modifier = modifier,
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
@@ -162,8 +237,7 @@ private fun ShipmentCard(shipment: Shipment, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 5.dp)
-            .shadow(6.dp, RoundedCornerShape(18.dp)),
+            .padding(horizontal = 12.dp, vertical = 5.dp),
         shape = RoundedCornerShape(18.dp),
         onClick = onClick,
         colors = CardDefaults.cardColors(
@@ -176,7 +250,9 @@ private fun ShipmentCard(shipment: Shipment, onClick: () -> Unit) {
                     shipment.cargoDescription.ifBlank { "(بدون توضیح)" },
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 StatusBadge(shipment.status)
             }

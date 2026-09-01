@@ -12,8 +12,8 @@ android {
         applicationId = "com.example.cargo"
         minSdk = 24
         targetSdk = 34
-        versionCode = 15
-        versionName = "3.4"
+        versionCode = 16
+        versionName = "3.5"
     }
 
     signingConfigs {

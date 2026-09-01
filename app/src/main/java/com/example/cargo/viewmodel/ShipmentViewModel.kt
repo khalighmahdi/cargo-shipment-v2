@@ -72,6 +72,10 @@ class ShipmentViewModel(application: Application) : AndroidViewModel(application
     val totalCount: StateFlow<Int> = repo.count()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
+    /** همه بارها — برای داشبورد آماری */
+    val allShipments: StateFlow<List<Shipment>> = repo.allShipments
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     fun setSearch(q: String) { _searchQuery.value = q }
     fun clearSearch() { _searchQuery.value = "" }
     fun setStatusFilter(status: String?) { _statusFilter.value = status }

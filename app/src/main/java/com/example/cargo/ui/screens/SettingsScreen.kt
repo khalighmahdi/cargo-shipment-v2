@@ -22,7 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.cargo.ui.theme.Purple
+import com.example.cargo.ui.theme.Emerald
 import com.example.cargo.util.CsvExporter
 import com.example.cargo.util.ShipmentWebServer
 import com.example.cargo.util.SmsSender
@@ -136,7 +136,7 @@ fun SettingsScreen(
                     Icon(
                         if (darkMode) Icons.Default.DarkMode else Icons.Default.LightMode,
                         null,
-                        tint = Purple
+                        tint = Emerald
                     )
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
@@ -160,7 +160,7 @@ fun SettingsScreen(
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Sms, null, tint = Purple)
+                        Icon(Icons.Default.Sms, null, tint = Emerald)
                         Spacer(Modifier.width(12.dp))
                         Column(Modifier.weight(1f)) {
                             Text("پیامک خودکار", fontWeight = FontWeight.Bold)
@@ -369,7 +369,7 @@ fun SettingsScreen(
                         Modifier.padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.Contacts, null, tint = Purple)
+                        Icon(Icons.Default.Contacts, null, tint = Emerald)
                         Spacer(Modifier.width(12.dp))
                         Column {
                             Text("دفترچه تلفن", fontWeight = FontWeight.Bold)
@@ -383,7 +383,7 @@ fun SettingsScreen(
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Wifi, null, tint = Purple)
+                        Icon(Icons.Default.Wifi, null, tint = Emerald)
                         Spacer(Modifier.width(12.dp))
                         Column(Modifier.weight(1f)) {
                             Text("اشتراک در شبکه", fontWeight = FontWeight.Bold)
@@ -426,7 +426,7 @@ fun SettingsScreen(
                         Spacer(Modifier.height(12.dp))
                         Card(
                             colors = CardDefaults.cardColors(
-                                containerColor = Purple.copy(alpha = 0.15f)
+                                containerColor = Emerald.copy(alpha = 0.15f)
                             )
                         ) {
                             Column(Modifier.padding(12.dp)) {
@@ -436,7 +436,7 @@ fun SettingsScreen(
                                     "http://$serverIp:8080",
                                     fontSize = 18.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Purple
+                                    color = Emerald
                                 )
                                 Text(
                                     "(هر دو دستگاه باید به یک وایفای وصل باشند)",
@@ -453,7 +453,7 @@ fun SettingsScreen(
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.FileDownload, null, tint = Purple)
+                        Icon(Icons.Default.FileDownload, null, tint = Emerald)
                         Spacer(Modifier.width(12.dp))
                         Column(Modifier.weight(1f)) {
                             Text("خروجی اکسل (CSV)", fontWeight = FontWeight.Bold)
@@ -483,8 +483,8 @@ fun SettingsScreen(
             // ===== About =====
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("📦 باربری", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    Text("نسخه ۳.۴", fontSize = 12.sp, color = Color.Gray)
+                    Text("📦 باربری شریفان", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text("نسخه ۳.۵", fontSize = 12.sp, color = Color.Gray)
                 }
             }
         }

@@ -25,17 +25,17 @@ fun brandGradient(): Brush = Brush.linearGradient(
 
 /** گرادیان پس‌زمینه صفحه */
 fun bgGradient(dark: Boolean): Brush = if (dark) {
-    Brush.verticalGradient(listOf(Color(0xFF0B0910), Color(0xFF141020), Color(0xFF0B0910)))
+    Brush.verticalGradient(listOf(Color(0xFF070D0A), Color(0xFF0F1713), Color(0xFF070D0A)))
 } else {
-    Brush.verticalGradient(listOf(Color(0xFFF7F6FB), Color(0xFFF0EDFA), Color(0xFFF7F6FB)))
+    Brush.verticalGradient(listOf(Color(0xFFF6FBF7), Color(0xFFE8F2EB), Color(0xFFF6FBF7)))
 }
 
 /**
- * پس‌زمینه صفحه با هاله‌های نور بنفش (aurora glow) — حس پریمیوم
+ * پس‌زمینه صفحه با هاله‌های نور سبز/طلایی (aurora glow) — حس پریمیوم شریفان
  */
 @Composable
 fun AuroraBackground(content: @Composable () -> Unit) {
-    val dark = MaterialTheme.colorScheme.background == Color(0xFF0B0910)
+    val dark = MaterialTheme.colorScheme.background == Color(0xFF070D0A)
     Box(
         Modifier
             .fillMaxSize()
@@ -48,15 +48,40 @@ fun AuroraBackground(content: @Composable () -> Unit) {
                     .align(Alignment.TopStart)
                     .offset(x = (-80).dp, y = (-60).dp)
                     .blur(90.dp)
-                    .background(Color(0xFF6D28D9).copy(alpha = 0.35f), RoundedCornerShape(50))
+                    .background(Color(0xFF0E7A46).copy(alpha = 0.35f), RoundedCornerShape(50))
             )
             Box(
                 Modifier
-                    .size(260.dp)
+                    .size(220.dp)
                     .align(Alignment.TopEnd)
                     .offset(x = 70.dp, y = 180.dp)
                     .blur(100.dp)
-                    .background(Color(0xFF4338CA).copy(alpha = 0.30f), RoundedCornerShape(50))
+                    .background(Color(0xFFD4AF37).copy(alpha = 0.22f), RoundedCornerShape(50))
+            )
+            Box(
+                Modifier
+                    .size(200.dp)
+                    .align(Alignment.BottomStart)
+                    .offset(x = (-40).dp, y = 40.dp)
+                    .blur(80.dp)
+                    .background(Color(0xFF34D399).copy(alpha = 0.18f), RoundedCornerShape(50))
+            )
+        } else {
+            Box(
+                Modifier
+                    .size(260.dp)
+                    .align(Alignment.TopStart)
+                    .offset(x = (-60).dp, y = (-50).dp)
+                    .blur(100.dp)
+                    .background(Color(0xFF0E7A46).copy(alpha = 0.12f), RoundedCornerShape(50))
+            )
+            Box(
+                Modifier
+                    .size(200.dp)
+                    .align(Alignment.TopEnd)
+                    .offset(x = 50.dp, y = 160.dp)
+                    .blur(90.dp)
+                    .background(Color(0xFFD4AF37).copy(alpha = 0.10f), RoundedCornerShape(50))
             )
         }
         content()

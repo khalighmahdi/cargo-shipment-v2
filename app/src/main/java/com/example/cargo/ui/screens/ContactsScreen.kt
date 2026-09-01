@@ -20,7 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.cargo.data.Contact
-import com.example.cargo.ui.theme.Purple
+import com.example.cargo.ui.theme.Emerald
 import com.example.cargo.viewmodel.ShipmentViewModel
 
 /**
@@ -108,7 +108,7 @@ fun ContactsScreen(
                             ) {
                                 Icon(
                                     Icons.Default.Person, null,
-                                    tint = Purple,
+                                    tint = Emerald,
                                     modifier = Modifier.size(32.dp)
                                 )
                                 Spacer(Modifier.width(10.dp))
@@ -122,7 +122,7 @@ fun ContactsScreen(
                                 }
                                 if (!pickMode) {
                                     IconButton(onClick = { editing = c }) {
-                                        Icon(Icons.Default.Edit, "ویرایش", tint = Purple, modifier = Modifier.size(18.dp))
+                                        Icon(Icons.Default.Edit, "ویرایش", tint = Emerald, modifier = Modifier.size(18.dp))
                                     }
                                     IconButton(onClick = { deleting = c }) {
                                         Icon(Icons.Default.Delete, "حذف", tint = Color.Red, modifier = Modifier.size(18.dp))
